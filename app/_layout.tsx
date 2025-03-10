@@ -64,9 +64,9 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
-const _layout = () => {
+export default function Layout() {
   return <MainLayout />;
-};
+}
 
 const MainLayout = () => {
   const router = useRouter();
@@ -108,7 +108,7 @@ const MainLayout = () => {
       setAppReady(true);
 
       if (hasSeenOnboarding) {
-        router.replace("/(tabs)/dashboard");
+        router.replace("/(drawer)/dashboard");
       } else {
         router.replace("/onboardingScreen");
       }
@@ -139,5 +139,3 @@ const MainLayout = () => {
     </Stack>
   );
 };
-
-export default _layout;

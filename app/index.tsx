@@ -1,5 +1,5 @@
 import OpeningScreen from "@/components/OpeningScreen";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 export default function Index() {
   return (
