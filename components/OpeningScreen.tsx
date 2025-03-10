@@ -66,7 +66,7 @@ const OpeningScreen = () => {
         duration: 800,
         useNativeDriver: true,
       }).start(() => {
-        router.replace("/(tabs)/dashboard");
+        router.replace("/(drawer)/dashboard");
       });
     }, 2000);
 

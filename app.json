@@ -15,7 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ckrdevelopment.QuakePath"
+      "bundleIdentifier": "com.ckrdevelopment.QuakePath",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show relevant map information",
+        "NSLocationWhenInUseDescription": "This app uses your location to show relevant map information"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +33,20 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "REMOVED_MAPBOX_DOWNLOAD_TOKEN",
+          "RNMapboxMapsVersion": "11.0.0"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Show current location on map."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
