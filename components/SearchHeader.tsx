@@ -1,4 +1,3 @@
-// app/(drawer)/dashboard/components/SearchHeader.tsx
 import React, { forwardRef } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
@@ -6,16 +5,18 @@ interface SearchHeaderProps {
   onSearch: (text: string) => void;
 }
 
-const SearchHeader = forwardRef<View, SearchHeaderProps>(({ onSearch }, ref) => (
-  <View style={styles.header} ref={ref}>
-    <TextInput
-      style={styles.search}
-      placeholder="Search location"
-      placeholderTextColor="#999"
-      onChangeText={onSearch}
-    />
-  </View>
-));
+const SearchHeader = forwardRef<View, SearchHeaderProps>(
+  ({ onSearch }, ref) => (
+    <View style={styles.header} ref={ref}>
+      <TextInput
+        style={styles.search}
+        placeholder="Search location"
+        placeholderTextColor="#999"
+        onChangeText={onSearch}
+      />
+    </View>
+  )
+);
 
 const styles = StyleSheet.create({
   header: {
