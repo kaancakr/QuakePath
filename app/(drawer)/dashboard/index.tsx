@@ -5,7 +5,7 @@ import {
   View,
   Modal,
   Text,
-  Alert,
+  FlatList,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -17,6 +17,7 @@ import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import DashboardViewModel from "../../../hooks/dashboardModel";
 import LocationList from "../../../components/LocationList";
 import SearchHeader from "../../../components/SearchHeader";
+import { BlurView } from "expo-blur";
 import Mapbox, {
   Camera,
   LocationPuck,
@@ -27,6 +28,7 @@ import Mapbox, {
   UserLocation,
 } from "@rnmapbox/maps";
 import Colors from "@/constants/Colors";
+import { favoritePlaces } from "@/constants/constants";
 
 const access_token =
   "pk.eyJ1IjoiZWthYW5ja3IiLCJhIjoiY204M2Q0dXJxMGpmbzJpcXZlNDU0bXlhcyJ9.48mRreLT891aSutalkRclg";
@@ -89,46 +91,40 @@ const DashboardScreen = () => {
     longitude: number;
   }) => {
     setSelectedLocation(location);
-    setShowPopup(true); // Show the popup
+    setShowPopup(true);
   };
 
   const handleNavigationConfirm = () => {
     if (selectedLocation) {
-      fetchRoute(selectedLocation); // Draw the route
-      setShowPopup(false); // Hide the popup
+      fetchRoute(selectedLocation);
+      setShowPopup(false);
+    }
+  };
+
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoomLevel + 1, 20);
+    setZoomLevel(newZoom);
+    if (cameraRef.current) {
+      cameraRef.current.setCamera({
+        zoomLevel: newZoom,
+        animationDuration: 500,
+      });
+    }
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoomLevel - 1, 3);
+    setZoomLevel(newZoom);
+    if (cameraRef.current) {
+      cameraRef.current.setCamera({
+        zoomLevel: newZoom,
+        animationDuration: 500,
+      });
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.zoomControls}>
-        <TouchableOpacity
-          onPress={() => {
-            const newZoom = Math.min(zoomLevel + 1, 20);
-            setZoomLevel(newZoom);
-            cameraRef.current?.setCamera({
-              zoomLevel: newZoom,
-              animationDuration: 500,
-            });
-          }}
-          style={styles.zoomButton}
-        >
-          <MaterialIcons name="zoom-in" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            const newZoom = Math.max(zoomLevel - 1, 3);
-            setZoomLevel(newZoom);
-            cameraRef.current?.setCamera({
-              zoomLevel: newZoom,
-              animationDuration: 500,
-            });
-          }}
-          style={styles.zoomButton}
-        >
-          <MaterialIcons name="zoom-out" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
       <MapView
         style={styles.map}
         styleURL={
@@ -173,16 +169,38 @@ const DashboardScreen = () => {
         )}
       </MapView>
 
-      <TouchableOpacity
-        onPress={() => setDarkMode(!darkMode)}
-        style={styles.themeToggle}
-      >
-        <MaterialIcons
-          name={darkMode ? "light-mode" : "dark-mode"}
-          size={24}
-          color={darkMode ? "#FFD700" : "#000"}
-        />
-      </TouchableOpacity>
+      <View style={styles.topControlsTheme}>
+        <TouchableOpacity
+          onPress={() => setDarkMode(!darkMode)}
+          style={[
+            styles.controlButton,
+            { backgroundColor: Colors.light, left: 2, width: 50, height: 50 },
+          ]}
+        >
+          <MaterialIcons
+            name={darkMode ? "light-mode" : "dark-mode"}
+            size={24}
+            color={darkMode ? Colors.yellow : Colors.dark}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.topControls}>
+        <View style={styles.zoomContainer}>
+          <TouchableOpacity
+            onPress={handleZoomIn}
+            style={[styles.controlButton, styles.zoomButton]}
+          >
+            <MaterialIcons name="zoom-in" size={20} color={Colors.dark} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleZoomOut}
+            style={[styles.controlButton, styles.zoomButton]}
+          >
+            <MaterialIcons name="zoom-out" size={20} color={Colors.dark} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <SearchHeader onSearch={viewModel.handleSearch} />
 
@@ -216,48 +234,77 @@ const DashboardScreen = () => {
             })),
           ]}
         >
-          <View style={styles.handle} />
-          <LocationList
-            locations={viewModel.locations}
-            onSelectLocation={(location) => {
-              handleLocationSelect({
-                latitude: location.latitude,
-                longitude: location.longitude,
-              });
-            }}
-          />
+          <View style={styles.handleContainer}>
+            <View style={styles.handle} />
+          </View>
+
+          <View style={styles.sheetContent}>
+            <Text style={styles.sectionTitle}>Emergency Quick Actions</Text>
+            <View style={styles.emergencyButtons}>
+              <TouchableOpacity style={styles.emergencyButton}>
+                <MaterialIcons
+                  name="emergency"
+                  size={28}
+                  color={Colors.light}
+                />
+                <Text style={styles.emergencyButtonText}>SOS</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shelterButton}>
+                <MaterialIcons name="place" size={28} color={Colors.light} />
+                <Text style={styles.emergencyButtonText}>Shelters</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.sectionTitle}>Saved Safe Locations</Text>
+            <FlatList
+              data={viewModel.locations}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.safeLocationCard}
+                  onPress={() => handleLocationSelect(item)}
+                >
+                  <MaterialIcons
+                    name="safety-divider"
+                    size={24}
+                    color={Colors.primary}
+                  />
+                  <Text style={styles.locationName}>{item.name}</Text>
+                  <Text style={styles.locationDistance}>2.4km away</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
         </Animated.View>
       </GestureDetector>
 
-      <Modal
-        visible={showPopup}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPopup(false)}
-      >
-        <View style={styles.popupContainer}>
-          <View style={styles.popup}>
-            <Text style={styles.popupText}>
-              Do you want to navigate to this location?
+      <Modal transparent visible={showPopup}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Initiate Emergency Navigation?
             </Text>
-            <View style={styles.popupButtons}>
+            <MaterialIcons name="warning" size={40} color={Colors.red} />
+            <Text style={styles.modalText}>
+              This route may pass through affected areas. Proceed with caution!
+            </Text>
+            <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.popupButtonNo}
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowPopup(false)}
               >
-                <FontAwesome6 name="xmark" size={30} color="red" />
-                <Text style={styles.popupButtonTextNo}>No</Text>
+                <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.popupButton}
+                style={[styles.modalButton, styles.navigateButton]}
                 onPress={handleNavigationConfirm}
               >
                 <FontAwesome6
-                  name="diamond-turn-right"
-                  size={30}
-                  color="white"
+                  name="person-walking"
+                  size={20}
+                  color={Colors.light}
                 />
-                <Text style={styles.popupButtonText}>Yes</Text>
+                <Text style={styles.navigateText}>Evacuate Now</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -306,29 +353,181 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     padding: 16,
+    zIndex: 3,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#ccc",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  zoomControls: {
+  topControls: {
     position: "absolute",
     top: 100,
-    left: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 8,
-    elevation: 3,
+    right: 16,
+    gap: 12,
     zIndex: 2,
+  },
+  topControlsTheme: {
+    position: "absolute",
+    top: 100,
+    left: 16,
+    gap: 12,
+    zIndex: 2,
+  },
+  controlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  zoomContainer: {
+    gap: 8,
+    backgroundColor: Colors.light,
+    borderRadius: 15,
+    padding: 8,
+  },
+  searchContainer: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    right: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+    zIndex: 2,
+  },
+  handleContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  handle: {
+    width: 48,
+    height: 4,
+    backgroundColor: Colors.dark + "60",
+    borderRadius: 2,
+  },
+  sheetContent: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.dark,
+    marginBottom: 16,
+    marginTop: 6
+  },
+  emergencyButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  emergencyButton: {
+    flex: 1,
+    backgroundColor: Colors.red,
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  shelterButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emergencyButtonText: {
+    color: Colors.light,
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  safeLocationCard: {
+    backgroundColor: Colors.light,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginBottom: 10,
+    marginTop: 8,
+    borderWidth: 2,
+    borderColor: Colors.red,
+  },
+  locationName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.dark,
+    marginTop: 8,
+  },
+  locationDistance: {
+    fontSize: 14,
+    color: Colors.grey,
+    marginTop: 4,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "#00000050",
+  },
+  modalContent: {
+    margin: 20,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    gap: 16,
+    backgroundColor: Colors.light,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Colors.dark,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    color: Colors.grey,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+  },
+  cancelButton: {
+    backgroundColor: Colors.light,
+    borderWidth: 2,
+    borderColor: Colors.grey,
+  },
+  navigateButton: {
+    backgroundColor: Colors.primary,
+  },
+  cancelText: {
+    color: Colors.dark,
+    fontWeight: "600",
+  },
+  navigateText: {
+    color: Colors.light,
+    fontWeight: "600",
   },
   zoomButton: {
     padding: 6,
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 15,
     marginVertical: 5,
     alignItems: "center",
     justifyContent: "center",
@@ -336,62 +535,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  popupContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  popup: {
-    backgroundColor: "white",
-    padding: 30,
-    borderRadius: 25,
-    borderColor: Colors.green,
-    borderWidth: 2,
-    position: "absolute",
-    bottom: 220,
-    justifyContent: "center",
-    left: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  popupText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  popupButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  popupButton: {
-    padding: 10,
-    backgroundColor: Colors.green,
-    borderRadius: 20,
-    width: "40%",
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-  },
-  popupButtonNo: {
-    padding: 10,
-    backgroundColor: Colors.light,
-    borderRadius: 20,
-    width: "40%",
-    alignItems: "center",
-    borderColor: Colors.red,
-    borderWidth: 2,
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-  },
-  popupButtonText: {
-    color: "white",
-    fontSize: 16,
-  },
-  popupButtonTextNo: {
-    color: Colors.red,
-    fontSize: 16,
   },
 });
 
