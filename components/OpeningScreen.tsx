@@ -42,7 +42,6 @@ const OpeningScreen = () => {
       ])
     ).start();
 
-    // Scale animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnimation, {
