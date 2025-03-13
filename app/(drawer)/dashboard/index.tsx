@@ -15,9 +15,7 @@ import Animated, {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import DashboardViewModel from "../../../hooks/dashboardModel";
-import LocationList from "../../../components/LocationList";
 import SearchHeader from "../../../components/SearchHeader";
-import { BlurView } from "expo-blur";
 import Mapbox, {
   Camera,
   LocationPuck,
@@ -28,7 +26,6 @@ import Mapbox, {
   UserLocation,
 } from "@rnmapbox/maps";
 import Colors from "@/constants/Colors";
-import { favoritePlaces } from "@/constants/constants";
 
 const access_token =
   "pk.eyJ1IjoiZWthYW5ja3IiLCJhIjoiY204M2Q0dXJxMGpmbzJpcXZlNDU0bXlhcyJ9.48mRreLT891aSutalkRclg";
