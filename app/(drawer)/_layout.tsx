@@ -74,6 +74,16 @@ export default function DrawerLayout() {
           ),
         }}
       />
+      {/* Yeni Ekran */}
+      <Drawer.Screen
+        name="dashboard/help/index"
+        options={{
+          title: "Yardım",
+          drawerIcon: ({ color }) => (
+            <FontAwesome5 name="help-outline" size={20} color={color} />
+          ),
+        }}
+      />
     </Drawer>
   );
 }
