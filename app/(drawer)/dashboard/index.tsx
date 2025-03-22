@@ -1,21 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  Modal,
-  Text,
-  FlatList,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View, Text } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
-import DashboardViewModel from "../../../hooks/dashboardModel";
+import { MaterialIcons } from "@expo/vector-icons";
+import DashboardViewModel from "../../../hooks/useDashboardModel";
 import SearchHeader from "../../../components/SearchHeader";
+import { calculateDistance, calculateZoomLevel } from "@/utils/geoUtils";
 import Mapbox, {
   Camera,
   LocationPuck,
@@ -24,8 +18,13 @@ import Mapbox, {
   ShapeSource,
   LineLayer,
   UserLocation,
+  VectorSource,
+  SymbolLayer,
 } from "@rnmapbox/maps";
 import Colors from "@/constants/Colors";
+import EmergencyActions from "@/components/EmergencyActions";
+import SavedLocationList from "@/components/SavedLocationList";
+import NavigationModal from "@/components/NavigationModal";
 
 const access_token =
   "REMOVED_MAPBOX_PUBLIC_TOKEN";
@@ -38,7 +37,7 @@ const DashboardScreen = () => {
   const CLOSED_TRANSLATE_Y = 0;
   const [darkMode, setDarkMode] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number]>([
-    32.859742, 39.933363,
+    32.85411, 39.92077,
   ]);
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -47,7 +46,7 @@ const DashboardScreen = () => {
   const [route, setRoute] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
   const cameraRef = useRef<Camera>(null);
-  const [zoomLevel, setZoomLevel] = useState(6);
+  const [zoomLevel, setZoomLevel] = useState(12);
 
   useEffect(() => {
     if (userLocation && cameraRef.current) {
@@ -65,18 +64,33 @@ const DashboardScreen = () => {
   }) => {
     if (!userLocation) return;
 
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLocation[0]},${userLocation[1]};${destination.longitude},${destination.latitude}?geometries=geojson&access_token=${access_token}`;
-
     try {
-      const response = await fetch(url);
+      const distance = calculateDistance(userLocation, [
+        destination.longitude,
+        destination.latitude,
+      ]);
+
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${userLocation[0]},${userLocation[1]};${destination.longitude},${destination.latitude}?geometries=geojson&overview=full&steps=true&access_token=${access_token}`
+      );
+
       const data = await response.json();
 
-      if (data.routes && data.routes.length) {
+      if (data.routes?.[0]) {
         setRoute({
           type: "Feature",
           geometry: data.routes[0].geometry,
           properties: {},
         });
+
+        if (cameraRef.current) {
+          cameraRef.current.setCamera({
+            centerCoordinate: [destination.longitude, destination.latitude],
+            zoomLevel: calculateZoomLevel(distance),
+            animationDuration: 2000,
+            animationMode: "flyTo",
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching route:", error);
@@ -86,14 +100,30 @@ const DashboardScreen = () => {
   const handleLocationSelect = (location: {
     latitude: number;
     longitude: number;
+    name: string;
   }) => {
+    if (userLocation && cameraRef.current) {
+      const distance = calculateDistance(userLocation, [
+        location.longitude,
+        location.latitude,
+      ]);
+
+      cameraRef.current.setCamera({
+        centerCoordinate: [location.longitude, location.latitude],
+        zoomLevel: calculateZoomLevel(distance),
+        animationDuration: 1000,
+      });
+    }
+
     setSelectedLocation(location);
     setShowPopup(true);
   };
 
-  const handleNavigationConfirm = () => {
+  const handleNavigationConfirm = async () => {
+    console.log("Navigation confirmed");
     if (selectedLocation) {
-      fetchRoute(selectedLocation);
+      console.log("Starting route to:", selectedLocation);
+      await fetchRoute(selectedLocation);
       setShowPopup(false);
     }
   };
@@ -126,8 +156,8 @@ const DashboardScreen = () => {
         style={styles.map}
         styleURL={
           darkMode
-            ? "mapbox://styles/mapbox/dark-v11"
-            : "mapbox://styles/mapbox/streets-v12"
+            ? "mapbox://styles/mapbox/navigation-night-v1"
+            : "mapbox://styles/mapbox/navigation-day-v1"
         }
       >
         <Camera
@@ -137,14 +167,39 @@ const DashboardScreen = () => {
           animationDuration={1000}
         />
         <LocationPuck puckBearingEnabled puckBearing="heading" />
-        <UserLocation
+        {/* <UserLocation
           onUpdate={(location) => {
             setUserLocation([
               location.coords.longitude,
               location.coords.latitude,
             ]);
           }}
-        />
+        /> */}
+
+        <VectorSource
+          id="mapbox-streets"
+          url="mapbox://mapbox.mapbox-streets-v8"
+        >
+          <LineLayer
+            id="road-label"
+            sourceLayerID="road_label"
+            style={{
+              lineColor: darkMode ? "#ffffff" : "#000000",
+              lineWidth: 1.5,
+            }}
+          />
+          <SymbolLayer
+            id="street-label"
+            sourceLayerID="road_label"
+            style={{
+              textField: ["get", "name_en"],
+              textSize: 14,
+              textColor: darkMode ? "#ffffff" : "#000000",
+              textHaloColor: darkMode ? "#000000" : "#ffffff",
+              textHaloWidth: 1,
+            }}
+          />
+        </VectorSource>
 
         {selectedLocation && (
           <MarkerView
@@ -160,7 +215,12 @@ const DashboardScreen = () => {
           <ShapeSource id="routeSource" shape={route}>
             <LineLayer
               id="routeLayer"
-              style={{ lineColor: "green", lineWidth: 3 }}
+              style={{
+                lineColor: "#FF0000",
+                lineWidth: 4,
+                lineOpacity: 0.8,
+                lineCap: "round",
+              }}
             />
           </ShapeSource>
         )}
@@ -237,76 +297,29 @@ const DashboardScreen = () => {
 
           <View style={styles.sheetContent}>
             <Text style={styles.sectionTitle}>Emergency Quick Actions</Text>
-            <View style={styles.emergencyButtons}>
-              <TouchableOpacity style={styles.emergencyButton}>
-                <MaterialIcons
-                  name="emergency"
-                  size={28}
-                  color={Colors.light}
-                />
-                <Text style={styles.emergencyButtonText}>SOS</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.shelterButton}>
-                <MaterialIcons name="place" size={28} color={Colors.light} />
-                <Text style={styles.emergencyButtonText}>Shelters</Text>
-              </TouchableOpacity>
-            </View>
+            <EmergencyActions
+              onEmergencyPress={() => {
+                /* Handle emergency */
+              }}
+              onShelterPress={() => {
+                /* Handle shelters */
+              }}
+            />
 
             <Text style={styles.sectionTitle}>Saved Safe Locations</Text>
-            <FlatList
-              data={viewModel.locations}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.safeLocationCard}
-                  onPress={() => handleLocationSelect(item)}
-                >
-                  <MaterialIcons
-                    name="safety-divider"
-                    size={24}
-                    color={Colors.primary}
-                  />
-                  <Text style={styles.locationName}>{item.name}</Text>
-                  <Text style={styles.locationDistance}>2.4km away</Text>
-                </TouchableOpacity>
-              )}
+            <SavedLocationList
+              locations={viewModel.locations}
+              onSelectLocation={handleLocationSelect}
             />
           </View>
         </Animated.View>
       </GestureDetector>
 
-      <Modal transparent visible={showPopup}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Initiate Emergency Navigation?
-            </Text>
-            <MaterialIcons name="warning" size={40} color={Colors.red} />
-            <Text style={styles.modalText}>
-              This route may pass through affected areas. Proceed with caution!
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowPopup(false)}
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.navigateButton]}
-                onPress={handleNavigationConfirm}
-              >
-                <FontAwesome6
-                  name="person-walking"
-                  size={20}
-                  color={Colors.light}
-                />
-                <Text style={styles.navigateText}>Evacuate Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <NavigationModal
+        visible={showPopup}
+        onCancel={() => setShowPopup(false)}
+        onConfirm={handleNavigationConfirm}
+      />
     </View>
   );
 };
@@ -412,7 +425,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.dark,
     marginBottom: 16,
-    marginTop: 6
+    marginTop: 6,
   },
   emergencyButtons: {
     flexDirection: "row",

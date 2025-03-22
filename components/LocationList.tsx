@@ -7,8 +7,8 @@ import {
   Pressable,
   TouchableOpacity,
 } from "react-native";
-import { Location } from "../constants/models";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import type { Location } from "../constants/models";
 
 const LocationList = memo(
   ({
