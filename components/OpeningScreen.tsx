@@ -82,7 +82,7 @@ const OpeningScreen = () => {
       />
 
       <Animated.Image
-        source={require("../assets/images/QuakePath.png")}
+        source={require("../assets/images/QuakePath1.png")}
         style={[
           styles.logo,
           {
