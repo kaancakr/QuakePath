@@ -1,6 +1,6 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
-import { FontAwesome5, MaterialIcons, Feather } from "@expo/vector-icons";
+import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 
@@ -76,11 +76,11 @@ export default function DrawerLayout() {
       />
       {/* Yeni Ekran */}
       <Drawer.Screen
-        name="dashboard/help/index"
+        name="help/index"
         options={{
           title: "Yardım",
           drawerIcon: ({ color }) => (
-            <FontAwesome5 name="help-outline" size={20} color={color} />
+            <Ionicons name="help-circle" size={20} color={color} />
           ),
         }}
       />

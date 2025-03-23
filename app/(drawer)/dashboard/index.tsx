@@ -5,7 +5,6 @@ import {
   View,
   Modal,
   Text,
-  FlatList,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -14,7 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
-import DashboardViewModel from "../../../hooks/dashboardModel";
+import useDashboardViewModel from "../../../hooks/dashboardModel";
 import SearchHeader from "../../../components/SearchHeader";
 import Mapbox, {
   Camera,
@@ -26,19 +25,39 @@ import Mapbox, {
   UserLocation,
 } from "@rnmapbox/maps";
 import Colors from "@/constants/Colors";
+import LocationList from "../../../components/LocationList";
 
 const access_token =
   "pk.eyJ1IjoiZWthYW5ja3IiLCJhIjoiY204M2Q0dXJxMGpmbzJpcXZlNDU0bXlhcyJ9.48mRreLT891aSutalkRclg";
 Mapbox.setAccessToken(access_token);
 
+// Haversine formülü ile mesafe hesaplama
+const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const toRad = (x) => (x * Math.PI) / 180;
+  const R = 6371; // Dünya'nın yarıçapı (km cinsinden)
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Mesafe (km cinsinden)
+
+  return distance;
+};
+
 const DashboardScreen = () => {
-  const viewModel = DashboardViewModel();
+  const viewModel = useDashboardViewModel();
   const translateY = useSharedValue(0);
   const MAX_TRANSLATE_Y = -400;
   const CLOSED_TRANSLATE_Y = 0;
   const [darkMode, setDarkMode] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number]>([
-    32.859742, 39.933363,
+    32.859742, 39.933363, // Ankara'nın koordinatları
   ]);
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -47,13 +66,32 @@ const DashboardScreen = () => {
   const [route, setRoute] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
   const cameraRef = useRef<Camera>(null);
-  const [zoomLevel, setZoomLevel] = useState(6);
+  const [zoomLevel, setZoomLevel] = useState(12);
+  const [showUserLocation, setShowUserLocation] = useState(false);
+
+  // Uzaklıkları hesapla
+  const calculateDistances = (locations, userLocation) => {
+    return locations.map((location) => {
+      const distance = haversineDistance(
+        userLocation[1], // Ankara'nın latitude
+        userLocation[0], // Ankara'nın longitude
+        location.latitude,
+        location.longitude
+      );
+      return {
+        ...location,
+        distance: distance.toFixed(2) + " km away", // Mesafeyi 2 ondalık basamakla göster
+      };
+    });
+  };
+
+  const locationsWithDistance = calculateDistances(viewModel.locations, userLocation);
 
   useEffect(() => {
-    if (userLocation && cameraRef.current) {
+    if (cameraRef.current) {
       cameraRef.current.setCamera({
         centerCoordinate: userLocation,
-        zoomLevel: 6,
+        zoomLevel: zoomLevel,
         animationDuration: 1000,
       });
     }
@@ -137,21 +175,43 @@ const DashboardScreen = () => {
           animationDuration={1000}
         />
         <LocationPuck puckBearingEnabled puckBearing="heading" />
-        <UserLocation
-          onUpdate={(location) => {
-            setUserLocation([
-              location.coords.longitude,
-              location.coords.latitude,
-            ]);
-          }}
-        />
+
+        {/* Ankara'nın koordinatlarında bir nokta göster */}
+        <MarkerView coordinate={userLocation}>
+          <View style={styles.marker}>
+            <MaterialIcons name="location-pin" size={32} color="red" />
+          </View>
+        </MarkerView>
+
+        {/* dummyLocations'daki konumları haritada göster */}
+        {locationsWithDistance.map((location) => (
+          <MarkerView
+            key={location.id}
+            coordinate={[location.longitude, location.latitude]}
+          >
+            <View style={styles.marker}>
+              <MaterialIcons name="location-pin" size={32} color="blue" />
+            </View>
+          </MarkerView>
+        ))}
+
+        {showUserLocation && (
+          <UserLocation
+            onUpdate={(location) => {
+              setUserLocation([
+                location.coords.longitude,
+                location.coords.latitude,
+              ]);
+            }}
+          />
+        )}
 
         {selectedLocation && (
           <MarkerView
             coordinate={[selectedLocation.longitude, selectedLocation.latitude]}
           >
             <View style={styles.marker}>
-              <MaterialIcons name="location-pin" size={32} color="red" />
+              <MaterialIcons name="location-pin" size={32} color="green" />
             </View>
           </MarkerView>
         )}
@@ -253,23 +313,14 @@ const DashboardScreen = () => {
             </View>
 
             <Text style={styles.sectionTitle}>Saved Safe Locations</Text>
-            <FlatList
-              data={viewModel.locations}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.safeLocationCard}
-                  onPress={() => handleLocationSelect(item)}
-                >
-                  <MaterialIcons
-                    name="safety-divider"
-                    size={24}
-                    color={Colors.primary}
-                  />
-                  <Text style={styles.locationName}>{item.name}</Text>
-                  <Text style={styles.locationDistance}>2.4km away</Text>
-                </TouchableOpacity>
-              )}
+            <LocationList
+              locations={locationsWithDistance}
+              onSelectLocation={(location) =>
+                handleLocationSelect({
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                })
+              }
             />
           </View>
         </Animated.View>
@@ -307,6 +358,14 @@ const DashboardScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Kullanıcı konumunu gösterme butonu */}
+      <TouchableOpacity
+        onPress={() => setShowUserLocation(true)}
+        style={styles.button}
+      >
+        <Text style={styles.buttonText}>Show My Location</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -532,6 +591,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  button: {
+    position: "absolute",
+    bottom: 20,
+    alignSelf: "center",
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  buttonText: {
+    color: Colors.light,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
