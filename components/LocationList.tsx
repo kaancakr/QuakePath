@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
   TouchableOpacity,
 } from "react-native";
 import { Location } from "../constants/models";
@@ -32,6 +31,7 @@ const LocationList = memo(
           <View style={styles.textContainer}>
             <Text style={styles.title}>{item.name}</Text>
             <Text style={styles.address}>{item.address}</Text>
+            <Text style={styles.distance}>{item.distance}</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
   textContainer: { flex: 1 },
   title: { fontSize: 16, fontWeight: "600", color: "#333" },
   address: { fontSize: 14, color: "#666", marginTop: 2 },
+  distance: { fontSize: 14, color: "#666", marginTop: 2 },
 });
 
 export default LocationList;
