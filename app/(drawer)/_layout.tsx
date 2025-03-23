@@ -74,13 +74,12 @@ export default function DrawerLayout() {
           ),
         }}
       />
-      {/* Yeni Ekran */}
-      <Drawer.Screen
+      <Drawer.Screen 
         name="help/index"
         options={{
-          title: "Yardım",
+          title: "Help",
           drawerIcon: ({ color }) => (
-            <Ionicons name="help-circle" size={20} color={color} />
+            <MaterialIcons name="help" size={20} color={color} />
           ),
         }}
       />
