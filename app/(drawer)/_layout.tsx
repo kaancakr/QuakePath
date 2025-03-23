@@ -74,6 +74,15 @@ export default function DrawerLayout() {
           ),
         }}
       />
+      <Drawer.Screen 
+        name="help/index"
+        options={{
+          title: "Help",
+          drawerIcon: ({ color }) => (
+            <MaterialIcons name="help" size={20} color={color} />
+          ),
+        }}
+      />
     </Drawer>
   );
 }
