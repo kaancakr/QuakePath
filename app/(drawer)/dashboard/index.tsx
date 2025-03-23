@@ -7,7 +7,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
-import DashboardViewModel from "../../../hooks/useDashboardModel";
 import SearchHeader from "../../../components/SearchHeader";
 import { calculateDistance, calculateZoomLevel } from "@/utils/geoUtils";
 import Mapbox, {
@@ -17,7 +16,6 @@ import Mapbox, {
   MarkerView,
   ShapeSource,
   LineLayer,
-  UserLocation,
   VectorSource,
   SymbolLayer,
 } from "@rnmapbox/maps";
@@ -25,13 +23,14 @@ import Colors from "@/constants/Colors";
 import EmergencyActions from "@/components/EmergencyActions";
 import SavedLocationList from "@/components/SavedLocationList";
 import NavigationModal from "@/components/NavigationModal";
+import useDashboardViewModel from "../../../hooks/useDashboardModel";
 
 const access_token =
   "REMOVED_MAPBOX_PUBLIC_TOKEN";
 Mapbox.setAccessToken(access_token);
 
 const DashboardScreen = () => {
-  const viewModel = DashboardViewModel();
+  const viewModel = useDashboardViewModel();
   const translateY = useSharedValue(0);
   const MAX_TRANSLATE_Y = -400;
   const CLOSED_TRANSLATE_Y = 0;
@@ -49,10 +48,10 @@ const DashboardScreen = () => {
   const [zoomLevel, setZoomLevel] = useState(12);
 
   useEffect(() => {
-    if (userLocation && cameraRef.current) {
+    if (cameraRef.current) {
       cameraRef.current.setCamera({
         centerCoordinate: userLocation,
-        zoomLevel: 6,
+        zoomLevel: zoomLevel,
         animationDuration: 1000,
       });
     }
@@ -206,7 +205,7 @@ const DashboardScreen = () => {
             coordinate={[selectedLocation.longitude, selectedLocation.latitude]}
           >
             <View style={styles.marker}>
-              <MaterialIcons name="location-pin" size={32} color="red" />
+              <MaterialIcons name="location-pin" size={32} color="green" />
             </View>
           </MarkerView>
         )}
@@ -484,45 +483,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#00000050",
   },
-  modalContent: {
-    margin: 20,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: "center",
-    gap: 16,
-    backgroundColor: Colors.light,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Colors.dark,
-    textAlign: "center",
-  },
-  modalText: {
-    fontSize: 16,
-    color: Colors.grey,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 16,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-  },
-  cancelButton: {
-    backgroundColor: Colors.light,
-    borderWidth: 2,
-    borderColor: Colors.grey,
-  },
   navigateButton: {
     backgroundColor: Colors.primary,
   },
@@ -545,6 +505,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  button: {
+    position: "absolute",
+    bottom: 20,
+    alignSelf: "center",
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  buttonText: {
+    color: Colors.light,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

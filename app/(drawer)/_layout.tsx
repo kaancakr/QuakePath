@@ -1,6 +1,6 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
-import { FontAwesome5, MaterialIcons, Feather } from "@expo/vector-icons";
+import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 
