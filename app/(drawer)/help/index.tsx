@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  TouchableOpacity,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 
@@ -14,21 +21,19 @@ const HelpScreen = () => {
   ];
 
   const kitItems = [
-    { icon: "water", text: "Su, konserve yiyecekler, enerji barları" }, // "water-drop" yerine "water" kullanıldı
-    { icon: "medical-bag", text: "İlk yardım çantası, ilaçlar" },
-    { icon: "flashlight", text: "El feneri, pil, düdük" },
-    { icon: "bed", text: "Battaniye, giysi, çadır" },
-    { icon: "file-document", text: "Önemli belge fotokopileri (kimlik, tapu, sigorta)" },
+    { icon: "local-drink", text: "Su, konserve yiyecekler, enerji barları" },
+    { icon: "medical-services", text: "İlk yardım çantası, ilaçlar" },
+    { icon: "flashlight-on", text: "El feneri, pil, düdük" },
+    { icon: "hotel", text: "Battaniye, giysi, çadır" },
+    { icon: "description", text: "Önemli belge fotokopileri (kimlik, tapu, sigorta)" },
   ];
 
   const openURL = (url: string) => {
-    Linking.openURL(url).catch((err) =>
-      console.error("URL açılamadı: ", err)
-    );
+    Linking.openURL(url).catch((err) => console.error("URL açılamadı: ", err));
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Yardım Sayfası</Text>
 
       {/* Acil Durum Numaraları */}
@@ -47,7 +52,11 @@ const HelpScreen = () => {
       <View style={styles.kitContainer}>
         {kitItems.map((item, index) => (
           <View key={index} style={styles.kitCard}>
-            <MaterialIcons name={item.icon as any} size={24} color={Colors.primary} /> {/* TypeScript hatasını önlemek için 'as any' eklendi */}
+            <MaterialIcons
+              name={item.icon as any}
+              size={24}
+              color={Colors.primary}
+            />
             <Text style={styles.kitText}>{item.text}</Text>
           </View>
         ))}
