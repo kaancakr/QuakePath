@@ -2,10 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import { Stack, useRouter } from "expo-router";
 import { Platform, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Colors from "@/constants/Colors";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { useTheme } from "@/context/ThemeContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,8 +22,10 @@ function handleRegistrationError(errorMessage: string) {
 }
 
 async function registerForPushNotificationsAsync() {
+  let token;
+
   if (Platform.OS === "android") {
-    Notifications.setNotificationChannelAsync("default", {
+    await Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -51,24 +54,29 @@ async function registerForPushNotificationsAsync() {
       handleRegistrationError("Project ID not found");
     }
     try {
-      const pushTokenString = (
-        await Notifications.getExpoPushTokenAsync({
-          projectId,
-        })
-      ).data;
-      console.log(pushTokenString);
-      return pushTokenString;
+      token = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      console.log(token.data);
+      return token.data;
     } catch (e: unknown) {
       handleRegistrationError(`${e}`);
     }
+  } else {
+    handleRegistrationError("Must use physical device for Push Notifications");
   }
 }
 
 export default function Layout() {
-  return <MainLayout />;
+  return (
+    <ThemeProvider>
+      <MainLayout />
+    </ThemeProvider>
+  );
 }
 
 const MainLayout = () => {
+  const { colors } = useTheme();
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [expoPushToken, setExpoPushToken] = useState("");
@@ -118,14 +126,14 @@ const MainLayout = () => {
   }, []);
 
   if (!appReady) {
-    return <View style={{ flex: 1, backgroundColor: Colors.light }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.light },
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       {showOnboarding ? (
