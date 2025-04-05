@@ -3,39 +3,43 @@ import { Drawer } from "expo-router/drawer";
 import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
+import { useTheme } from "@/context/ThemeContext";
 
-const drawerOptions = {
-  headerShown: true,
-  headerStyle: {
-    backgroundColor: Colors.light,
-    shadowColor: "transparent",
-    height: 110,
-  },
-  headerTitleStyle: {
-    color: Colors.dark,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  drawerActiveTintColor: "#fff",
-  drawerInactiveTintColor: Colors.grey,
-  drawerActiveBackgroundColor: Colors.teal,
-  drawerStyle: {
-    backgroundColor: "#f9f9f9",
-    width: 250,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingVertical: 10,
-  },
-  drawerLabelStyle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  drawerItemStyle: {
-    borderRadius: 15,
-  },
-} satisfies DrawerNavigationOptions;
+const DrawerLayout = () => {
+  const { colors, isDarkMode } = useTheme();
 
-export default function DrawerLayout() {
+  const drawerOptions: DrawerNavigationOptions = {
+    headerShown: true,
+    headerStyle: {
+      backgroundColor: colors.headerBackground,
+      shadowColor: "transparent",
+      height: 110,
+    },
+    headerTitleStyle: {
+      color: colors.headerText,
+      fontSize: 18,
+      fontWeight: "bold",
+    },
+    headerTintColor: colors.headerText,
+    drawerActiveTintColor: colors.light,
+    drawerInactiveTintColor: colors.grey,
+    drawerActiveBackgroundColor: isDarkMode ? colors.darkGreen : colors.teal,
+    drawerStyle: {
+      backgroundColor: colors.card,
+      width: 250,
+      borderTopRightRadius: 20,
+      borderBottomRightRadius: 20,
+      paddingVertical: 10,
+    },
+    drawerLabelStyle: {
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    drawerItemStyle: {
+      borderRadius: 15,
+    },
+  };
+
   return (
     <Drawer screenOptions={drawerOptions}>
       <Drawer.Screen
@@ -83,6 +87,17 @@ export default function DrawerLayout() {
           ),
         }}
       />
+      <Drawer.Screen
+        name="settings/index"
+        options={{
+          title: "Settings",
+          drawerIcon: ({ color }) => (
+            <MaterialIcons name="settings" size={20} color={color} />
+          ),
+        }}
+      />
     </Drawer>
   );
-}
+};
+
+export default DrawerLayout;
