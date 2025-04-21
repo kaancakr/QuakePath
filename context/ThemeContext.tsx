@@ -8,12 +8,13 @@ interface ThemeColors extends Record<keyof typeof Colors, string> {
   background: string;
   card: string;
   text: string;
+  textSecondary: string;
   border: string;
   notification: string;
   headerBackground: string;
   headerText: string;
-  lightGreen: string;
-  darkTeal: string;
+  input: string;
+  selected: string;
 }
 
 interface ThemeContextType {
@@ -66,41 +67,31 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (theme === 'dark') {
       return {
         ...baseColors,
-        background: '#121212',
-        card: '#1e1e1e',
-        text: '#f5f5f5',
-        border: '#333333',
-        notification: Colors.primary,
-        light: '#121212',
-        dark: '#f5f5f5',
-        grey: '#a0a0a0',
-        primary: Colors.darkGreen,
-        headerBackground: Colors.darkGreen,
-        headerText: '#ffffff',
-        // Enhanced green colors for dark mode
-        green: '#2c5530',
-        darkGreen: '#1a331d',
-        lightGreen: '#3c7340',
-        teal: '#264d4a',
-        darkTeal: '#1a3533',
+        background: Colors.darkBackground,
+        card: Colors.darkCard,
+        text: Colors.darkText,
+        textSecondary: Colors.darkTextSecondary,
+        border: Colors.darkBorder,
+        notification: Colors.darkPrimary,
+        headerBackground: Colors.darkHeaderBackground,
+        headerText: Colors.darkHeaderText,
+        input: Colors.darkInput,
+        selected: Colors.darkSelected,
       };
     }
     
     return {
       ...baseColors,
-      background: '#f5f5f5',
-      card: '#ffffff',
-      text: '#000000',
-      border: '#e0e0e0',
+      background: Colors.background,
+      card: Colors.card,
+      text: Colors.text,
+      textSecondary: Colors.textSecondary,
+      border: Colors.border,
       notification: Colors.primary,
-      headerBackground: Colors.light,
-      headerText: Colors.dark,
-      // Enhanced green colors for light mode
-      green: Colors.green,
-      darkGreen: Colors.darkGreen,
-      lightGreen: '#4d8f53',
-      teal: Colors.teal,
-      darkTeal: '#1d3b39',
+      headerBackground: Colors.headerBackground,
+      headerText: Colors.headerText,
+      input: Colors.input,
+      selected: Colors.selected,
     };
   };
 
