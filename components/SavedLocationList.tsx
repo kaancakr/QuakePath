@@ -23,7 +23,7 @@ const SavedLocationList = memo(
 );
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 24, paddingHorizontal: 8 },
+  list: { paddingBottom: 24, paddingHorizontal: 4 },
 });
 
 export default SavedLocationList;

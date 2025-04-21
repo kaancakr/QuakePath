@@ -8,13 +8,15 @@ import {
   Easing,
 } from "react-native";
 import { useRouter } from "expo-router";
-import Colors from "@/constants/Colors";
+import { useTheme } from "@/context/ThemeContext";
 
 const OpeningScreen = () => {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
   const shakeAnimation = new Animated.Value(0);
   const scaleAnimation = new Animated.Value(1);
   const fadeAnimation = new Animated.Value(1);
+  const styles = createStyles(colors, isDarkMode);
 
   useEffect(() => {
     Animated.loop(
@@ -76,8 +78,8 @@ const OpeningScreen = () => {
     <Animated.View style={[styles.container, { opacity: fadeAnimation }]}>
       <StatusBar
         animated
-        barStyle="light-content"
-        backgroundColor={Colors.light}
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={isDarkMode ? colors.darkCard : colors.card}
       />
 
       <Animated.Image
@@ -97,20 +99,21 @@ const OpeningScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.red,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    height: "100%",
-  },
-  logo: {
-    width: 200,
-    height: 200,
-    tintColor: Colors.light,
-  },
-});
+const createStyles = (colors: any, isDarkMode: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.darkRed,
+      justifyContent: "center",
+      alignItems: "center",
+      width: "100%",
+      height: "100%",
+    },
+    logo: {
+      width: 200,
+      height: 200,
+      tintColor: isDarkMode ? colors.darkCard : colors.card,
+    },
+  });
 
 export default OpeningScreen;
