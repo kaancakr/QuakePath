@@ -20,7 +20,6 @@ import {
   VectorSource,
   SymbolLayer,
 } from "@rnmapbox/maps";
-import Colors from "@/constants/Colors";
 import EmergencyActions from "@/components/EmergencyActions";
 import SavedLocationList from "@/components/SavedLocationList";
 import NavigationModal from "@/components/NavigationModal";

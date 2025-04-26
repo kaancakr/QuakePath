@@ -4,21 +4,21 @@ import {
   FontAwesome5,
   MaterialIcons,
   Feather,
-  Ionicons,
 } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 import { useTheme } from "@/context/ThemeContext";
+import { Platform } from "react-native";
 
 const DrawerLayout = () => {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
 
   const drawerOptions: DrawerNavigationOptions = {
     headerShown: true,
     headerStyle: {
       backgroundColor: isDarkMode ? Colors.darkHeaderBackground : Colors.headerBackground,
       shadowColor: "transparent",
-      height: 110,
+      height: Platform.OS === "ios" ? 110 : 60,
       elevation: 0,
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? Colors.darkBorder : Colors.border,
