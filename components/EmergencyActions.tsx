@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, TouchableOpacity, Text } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import Colors from "@/constants/Colors";
+import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 
 const EmergencyActions = ({
@@ -12,22 +12,23 @@ const EmergencyActions = ({
   onShelterPress: () => void;
 }) => {
   const router = useRouter();
+  const { colors } = useTheme();
 
   return (
     <View style={styles.emergencyButtons}>
       <TouchableOpacity
-        style={[styles.button, styles.emergencyButton]}
+        style={[styles.button, { backgroundColor: colors.error }]}
         onPress={() => router.push("/emergency")}
       >
-        <MaterialIcons name="emergency" size={28} color={Colors.light} />
-        <Text style={styles.buttonText}>SOS</Text>
+        <MaterialIcons name="emergency" size={28} color={colors.light} />
+        <Text style={[styles.buttonText, { color: colors.light }]}>SOS</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.button, styles.shelterButton]}
+        style={[styles.button, { backgroundColor: colors.primary }]}
         onPress={onShelterPress}
       >
-        <MaterialIcons name="place" size={28} color={Colors.light} />
-        <Text style={styles.buttonText}>Shelters</Text>
+        <MaterialIcons name="place" size={28} color={colors.light} />
+        <Text style={[styles.buttonText, { color: colors.light }]}>Shelters</Text>
       </TouchableOpacity>
     </View>
   );
@@ -48,16 +49,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  emergencyButton: {
-    backgroundColor: Colors.red,
-  },
-  shelterButton: {
-    backgroundColor: Colors.primary,
-  },
   buttonText: {
-    color: Colors.light,
-    fontWeight: "600",
     fontSize: 16,
+    fontWeight: "600",
   },
 });
 

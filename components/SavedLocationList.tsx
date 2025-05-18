@@ -15,7 +15,11 @@ const SavedLocationList = memo(
       data={locations}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <SavedLocationItem item={item} onPress={() => onSelectLocation(item)} />
+        <SavedLocationItem 
+          name={item.name}
+          address={item.address}
+          onPress={() => onSelectLocation(item)}
+        />
       )}
       contentContainerStyle={styles.list}
     />
