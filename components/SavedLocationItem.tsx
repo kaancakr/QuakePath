@@ -1,133 +1,62 @@
-import React, { memo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Animated } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useTheme } from "@/context/ThemeContext";
-import { Location } from "@/constants/models";
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
 
-const SavedLocationItem = memo(
-  ({ item, onPress }: { item: Location; onPress: () => void }) => {
-    const { colors, isDarkMode } = useTheme();
-    const styles = createStyles(colors, isDarkMode);
+interface SavedLocationItemProps {
+  name: string;
+  address: string;
+  onPress: () => void;
+  isEmergency?: boolean;
+}
 
-    return (
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            transform: [{ translateY: new Animated.Value(0) }],
-            opacity: new Animated.Value(1),
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.touchable}
-          onPress={onPress}
-          activeOpacity={0.7}
-        >
-          <View style={styles.iconContainer}>
-            <MaterialIcons
-              name="safety-divider"
-              size={24}
-              color={isDarkMode ? colors.darkAccentRed : colors.accentRed}
-            />
-          </View>
-          <View style={styles.textContainer}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-              <View style={styles.savedBadge}>
-                <MaterialIcons
-                  name="bookmark"
-                  size={14}
-                  color={isDarkMode ? colors.darkText : colors.text}
-                />
-              </View>
-            </View>
-            <View style={styles.addressContainer}>
-              <MaterialIcons
-                name="location-on"
-                size={14}
-                color={isDarkMode ? colors.darkTextSecondary : colors.textSecondary}
-                style={styles.addressIcon}
-              />
-              <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
-            </View>
-          </View>
-          <MaterialIcons
-            name="chevron-right"
-            size={24}
-            color={isDarkMode ? colors.darkTextSecondary : colors.textSecondary}
-          />
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }
-);
+const SavedLocationItem = ({ name, address, onPress, isEmergency }: SavedLocationItemProps) => {
+  const { colors } = useTheme();
 
-const createStyles = (colors: any, isDarkMode: boolean) =>
-  StyleSheet.create({
-    card: {
-      marginBottom: 12,
-      borderRadius: 16,
-      backgroundColor: isDarkMode ? colors.darkCard : colors.card,
-      shadowColor: isDarkMode ? colors.darkText : colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
-      borderWidth: 1,
-      borderColor: isDarkMode ? colors.darkBorder : colors.border,
-    },
-    touchable: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: 16,
-    },
-    iconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: isDarkMode
-        ? colors.darkAccentRed + "15"
-        : colors.accentRed + "15",
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 16,
-    },
-    textContainer: {
-      flex: 1,
-    },
-    titleContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 4,
-    },
-    name: {
-      fontSize: 17,
-      fontWeight: "600",
-      color: isDarkMode ? colors.darkText : colors.text,
-      flex: 1,
-    },
-    savedBadge: {
-      backgroundColor: isDarkMode ? colors.darkAccentRed + "20" : colors.accentRed + "20",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginLeft: 8,
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    addressContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    addressIcon: {
-      marginRight: 4,
-    },
-    address: {
-      fontSize: 14,
-      color: isDarkMode ? colors.darkTextSecondary : colors.textSecondary,
-      flex: 1,
-    },
-  });
+  return (
+    <TouchableOpacity
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+        isEmergency && { borderColor: colors.error }
+      ]}
+      onPress={onPress}
+    >
+      <View style={styles.iconContainer}>
+        <MaterialIcons name="safety-divider" size={24} color={colors.primary} />
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={[styles.name, { color: colors.text }]}>{name}</Text>
+        <Text style={[styles.address, { color: colors.grey }]}>{address}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  iconContainer: {
+    marginRight: 16,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  address: {
+    fontSize: 14,
+  },
+});
 
 export default SavedLocationItem;

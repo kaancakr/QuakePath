@@ -1,66 +1,36 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
-import {
-  FontAwesome5,
-  MaterialIcons,
-  Feather,
-} from "@expo/vector-icons";
-import Colors from "@/constants/Colors";
+import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 import { useTheme } from "@/context/ThemeContext";
 import { Platform } from "react-native";
 
 const DrawerLayout = () => {
-  const { isDarkMode } = useTheme();
+  const { colors, isDarkMode } = useTheme();
 
   const drawerOptions: DrawerNavigationOptions = {
     headerShown: true,
     headerStyle: {
-      backgroundColor: isDarkMode ? Colors.darkHeaderBackground : Colors.headerBackground,
-      shadowColor: "transparent",
-      height: Platform.OS === "ios" ? 110 : 60,
-      elevation: 0,
-      borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? Colors.darkBorder : Colors.border,
+      backgroundColor: colors.light,
+      height: Platform.OS === "ios" ? 110 : 50,
     },
-    headerTitleStyle: {
-      color: isDarkMode ? Colors.darkHeaderText : Colors.headerText,
-      fontSize: 20,
-      fontWeight: "600",
-    },
-    headerTintColor: isDarkMode ? Colors.darkHeaderText : Colors.headerText,
-    drawerActiveTintColor: isDarkMode ? Colors.darkText : Colors.text,
-    drawerInactiveTintColor: isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary,
-    drawerActiveBackgroundColor: isDarkMode ? Colors.darkSelected : Colors.selected,
+    headerTintColor: colors.headerText,
+    drawerActiveTintColor: colors.primary,
+    drawerInactiveTintColor: colors.grey,
+    drawerActiveBackgroundColor: isDarkMode ? colors.darkGreen : colors.teal,
     drawerStyle: {
-      backgroundColor: isDarkMode ? Colors.darkBackground : Colors.background,
-      width: 280,
-      borderTopRightRadius: 20,
-      borderBottomRightRadius: 20,
-      borderRightWidth: 1,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
+      backgroundColor: colors.background,
+      width: 250,
+      paddingVertical: 10,
     },
     drawerLabelStyle: {
       fontSize: 16,
-      fontWeight: "500",
-      marginLeft: -10,
+      fontWeight: "600",
+      color: colors.text,
     },
     drawerItemStyle: {
-      borderRadius: 12,
-      paddingLeft: 12,
-      marginHorizontal: 8,
-      marginVertical: 4,
-      borderWidth: 1,
-      borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
+      borderRadius: 15,
     },
-  };
-
-  const iconStyle = {
-    width: 24,
-    alignItems: "center" as const,
-    marginRight: 12,
   };
 
   return (
@@ -68,84 +38,63 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="dashboard/index"
         options={{
-          title: "Ana Sayfa",
+          title: "Dashboard",
           drawerIcon: ({ color }) => (
-            <FontAwesome5
-              name="home"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <MaterialIcons name="dashboard" size={24} color={color} />
           ),
         }}
       />
       <Drawer.Screen
-        name="bookings"
+        name="emergency/index"
+        options={{
+          title: "Acil Durum",
+          drawerIcon: ({ color }) => (
+            <MaterialIcons name="emergency" size={24} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="bookings/index"
         options={{
           title: "Bookings",
           drawerIcon: ({ color }) => (
-            <MaterialIcons
-              name="calendar-today"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <MaterialIcons name="calendar-today" size={20} color={color} />
           ),
         }}
       />
       <Drawer.Screen
-        name="payments"
+        name="payments/index"
         options={{
           title: "Payments",
           drawerIcon: ({ color }) => (
-            <Feather
-              name="dollar-sign"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <Feather name="dollar-sign" size={20} color={color} />
           ),
         }}
       />
       <Drawer.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: "Profile",
           drawerIcon: ({ color }) => (
-            <FontAwesome5
-              name="user"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <FontAwesome5 name="user" size={20} color={color} />
           ),
         }}
       />
       <Drawer.Screen
         name="help/index"
         options={{
-          title: "Help",
+          title: "Yardım",
           drawerIcon: ({ color }) => (
-            <MaterialIcons
-              name="help"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <MaterialIcons name="help" size={24} color={color} />
           ),
         }}
       />
       <Drawer.Screen
         name="settings/index"
         options={{
-          title: "Settings",
+          title: "Ayarlar",
           drawerIcon: ({ color }) => (
-            <MaterialIcons
-              name="settings"
-              size={20}
-              color={color}
-              style={iconStyle}
-            />
+            <MaterialIcons name="settings" size={24} color={color} />
           ),
         }}
       />
