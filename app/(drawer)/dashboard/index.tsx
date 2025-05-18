@@ -205,7 +205,11 @@ const DashboardScreen = () => {
             coordinate={[selectedLocation.longitude, selectedLocation.latitude]}
           >
             <View style={styles.marker}>
-              <MaterialIcons name="location-pin" size={32} color={colors.primary} />
+              <MaterialIcons
+                name="location-pin"
+                size={32}
+                color={colors.primary}
+              />
             </View>
           </MarkerView>
         )}
@@ -230,7 +234,12 @@ const DashboardScreen = () => {
           onPress={toggleTheme}
           style={[
             styles.controlButton,
-            { backgroundColor: colors.background, left: 2, width: 50, height: 50 },
+            {
+              backgroundColor: colors.background,
+              left: 2,
+              width: 50,
+              height: 50,
+            },
           ]}
         >
           <MaterialIcons
@@ -245,13 +254,21 @@ const DashboardScreen = () => {
         <View style={styles.zoomContainer}>
           <TouchableOpacity
             onPress={handleZoomIn}
-            style={[styles.controlButton, styles.zoomButton, { backgroundColor: colors.background }]}
+            style={[
+              styles.controlButton,
+              styles.zoomButton,
+              { backgroundColor: colors.background },
+            ]}
           >
             <MaterialIcons name="zoom-in" size={20} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleZoomOut}
-            style={[styles.controlButton, styles.zoomButton, { backgroundColor: colors.background }]}
+            style={[
+              styles.controlButton,
+              styles.zoomButton,
+              { backgroundColor: colors.background },
+            ]}
           >
             <MaterialIcons name="zoom-out" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -272,9 +289,10 @@ const DashboardScreen = () => {
             );
           })
           .onEnd((event) => {
-            const shouldClose = event.velocityY > 0 ||
+            const shouldClose =
+              event.velocityY > 0 ||
               translateY.value > (MAX_TRANSLATE_Y + CLOSED_TRANSLATE_Y) / 2;
-            
+
             translateY.value = withSpring(
               shouldClose ? CLOSED_TRANSLATE_Y : MAX_TRANSLATE_Y,
               {
@@ -302,7 +320,9 @@ const DashboardScreen = () => {
           </View>
 
           <View style={styles.sheetContent}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Emergency Quick Actions</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Emergency Quick Actions
+            </Text>
             <EmergencyActions
               onEmergencyPress={() => {
                 /* Handle emergency */
@@ -312,7 +332,9 @@ const DashboardScreen = () => {
               }}
             />
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Saved Safe Locations</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Saved Safe Locations
+            </Text>
             <SavedLocationList
               locations={viewModel.locations}
               onSelectLocation={handleLocationSelect}
