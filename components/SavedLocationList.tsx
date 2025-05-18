@@ -15,7 +15,11 @@ const SavedLocationList = memo(
       data={locations}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <SavedLocationItem item={item} onPress={() => onSelectLocation(item)} />
+        <SavedLocationItem 
+          name={item.name}
+          address={item.address}
+          onPress={() => onSelectLocation(item)}
+        />
       )}
       contentContainerStyle={styles.list}
     />
@@ -23,7 +27,7 @@ const SavedLocationList = memo(
 );
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 24, paddingHorizontal: 4 },
+  list: { paddingBottom: 24, paddingHorizontal: 8 },
 });
 
 export default SavedLocationList;

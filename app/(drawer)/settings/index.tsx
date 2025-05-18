@@ -8,8 +8,6 @@ import {
   ScrollView,
   Switch,
   Image,
-  Animated,
-  Platform,
 } from 'react-native';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
@@ -24,7 +22,6 @@ const SettingsScreen = () => {
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [language, setLanguage] = useState('English');
-  const [scaleAnim] = useState(new Animated.Value(1));
 
   const handleLogin = () => {
     // TODO: Implement actual login logic
@@ -42,21 +39,6 @@ const SettingsScreen = () => {
     setIsRescueTeam(!isRescueTeam);
   };
 
-  const animatePress = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const renderSettingItem = (
     icon: string, 
     title: string, 
@@ -64,174 +46,97 @@ const SettingsScreen = () => {
     onPress: () => void, 
     isSwitch: boolean = false
   ) => (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity 
-        style={[
-          styles.settingItem, 
-          { 
-            borderBottomColor: isDarkMode ? Colors.darkBorder : Colors.border,
-            backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-          }
-        ]} 
-        onPress={isSwitch ? undefined : () => {
-          animatePress();
-          onPress();
-        }}
-        disabled={isSwitch}
-      >
-        <View style={[
-          styles.settingIconContainer, 
-          { 
-            backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.lightGrey,
-            borderWidth: 1,
-            borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-          }
-        ]}>
-          <MaterialIcons name={icon as any} size={22} color={isDarkMode ? Colors.darkText : Colors.text} />
+    <TouchableOpacity 
+      style={[styles.settingItem, { borderBottomColor: colors.border }]} 
+      onPress={isSwitch ? undefined : onPress}
+      disabled={isSwitch}
+    >
+      <View style={[styles.settingIconContainer, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
+        <MaterialIcons name={icon as any} size={22} color={colors.primary} />
+      </View>
+      <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
+      {isSwitch ? (
+        <Switch
+          value={value as boolean}
+          onValueChange={onPress}
+          trackColor={{ false: colors.grey, true: colors.primary }}
+          thumbColor={colors.light}
+        />
+      ) : (
+        <View style={styles.settingValueContainer}>
+          <Text style={[styles.settingValue, { color: colors.grey }]}>{value as string}</Text>
+          <MaterialIcons name="chevron-right" size={20} color={colors.grey} />
         </View>
-        <Text style={[styles.settingTitle, { color: isDarkMode ? Colors.darkText : Colors.text }]}>{title}</Text>
-        {isSwitch ? (
-          <Switch
-            value={value as boolean}
-            onValueChange={onPress}
-            trackColor={{ false: Colors.darkCard, true: isDarkMode ? Colors.darkAccentGrey : Colors.lightGrey }}
-            thumbColor={isDarkMode ? Colors.darkText : Colors.text}
-          />
-        ) : (
-          <View style={styles.settingValueContainer}>
-            <Text style={[
-              styles.settingValue, 
-              { color: isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary }
-            ]}>{value as string}</Text>
-            <MaterialIcons 
-              name="chevron-right" 
-              size={20} 
-              color={isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary} 
-            />
-          </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
+      )}
+    </TouchableOpacity>
   );
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: isDarkMode ? Colors.darkBackground : Colors.background }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: isDarkMode ? Colors.darkText : Colors.text }]}>Settings</Text>
-        <View style={[
-          styles.headerIconContainer,
-          { backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.lightGrey }
-        ]}>
-          <MaterialIcons 
-            name="settings" 
-            size={24} 
-            color={isDarkMode ? Colors.darkText : Colors.text} 
-          />
-        </View>
+        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+        <MaterialIcons name="settings" size={24} color={colors.primary} />
       </View>
 
-      <View style={[
-        styles.section, 
-        { 
-          backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-          borderWidth: 1,
-          borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-        }
-      ]}>
-        <Text style={[styles.sectionTitle, { color: isDarkMode ? Colors.darkText : Colors.text }]}>Account</Text>
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
         
         {!isLoggedIn ? (
           <View style={styles.loginContainer}>
-            <View style={[
-              styles.loginTypeToggle, 
-              { 
-                backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.lightGrey,
-                borderWidth: 1,
-                borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-              }
-            ]}>
+            <View style={[styles.loginTypeToggle, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
               <TouchableOpacity 
                 style={[
                   styles.toggleButton, 
-                  !isRescueTeam && {
-                    backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-                  }
+                  !isRescueTeam && styles.activeToggleButton
                 ]} 
                 onPress={() => setIsRescueTeam(false)}
               >
                 <Text style={[
                   styles.toggleText, 
-                  { color: isDarkMode ? Colors.darkText : Colors.text }
+                  !isRescueTeam && styles.activeToggleText
                 ]}>User</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[
                   styles.toggleButton, 
-                  isRescueTeam && {
-                    backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-                  }
+                  isRescueTeam && styles.activeToggleButton
                 ]} 
                 onPress={() => setIsRescueTeam(true)}
               >
                 <Text style={[
                   styles.toggleText, 
-                  { color: isDarkMode ? Colors.darkText : Colors.text }
+                  isRescueTeam && styles.activeToggleText
                 ]}>Rescue Team</Text>
               </TouchableOpacity>
             </View>
 
             <TextInput
-              style={[
-                styles.input, 
-                { 
-                  backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-                  borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-                  color: isDarkMode ? Colors.darkText : Colors.text,
-                }
-              ]}
+              style={[styles.input, { 
+                backgroundColor: isDarkMode ? '#333' : '#f9f9f9',
+                borderColor: isDarkMode ? '#444' : '#e0e0e0',
+                color: colors.text
+              }]}
               placeholder="Email"
-              placeholderTextColor={isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary}
+              placeholderTextColor={colors.grey}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             <TextInput
-              style={[
-                styles.input, 
-                { 
-                  backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-                  borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-                  color: isDarkMode ? Colors.darkText : Colors.text,
-                }
-              ]}
+              style={[styles.input, { 
+                backgroundColor: isDarkMode ? '#333' : '#f9f9f9',
+                borderColor: isDarkMode ? '#444' : '#e0e0e0',
+                color: colors.text
+              }]}
               placeholder="Password"
-              placeholderTextColor={isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary}
+              placeholderTextColor={colors.grey}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
             />
-            <TouchableOpacity 
-              style={[
-                styles.loginButton,
-                {
-                  backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.text,
-                  borderWidth: 0,
-                }
-              ]} 
-              onPress={handleLogin}
-            >
-              <Text style={[
-                styles.loginButtonText,
-                { color: isDarkMode ? Colors.primary : Colors.darkLightGrey }
-              ]}>
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>
                 {isRescueTeam ? 'Login as Rescue Team' : 'Login'}
               </Text>
             </TouchableOpacity>
@@ -239,80 +144,90 @@ const SettingsScreen = () => {
         ) : (
           <View style={styles.loggedInContainer}>
             <View style={styles.profileHeader}>
-              <View style={[
-                styles.profileIconContainer, 
-                { 
-                  backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.lightGrey,
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-                }
-              ]}>
+              <View style={[styles.profileIconContainer, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
                 <MaterialIcons 
                   name={isRescueTeam ? "medical-services" : "account-circle"} 
                   size={48} 
-                  color={isDarkMode ? Colors.darkText : Colors.text} 
+                  color={colors.primary} 
                 />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={[
-                  styles.loggedInText, 
-                  { color: isDarkMode ? Colors.darkText : Colors.text }
-                ]}>{email}</Text>
-                <Text style={[
-                  styles.userTypeText, 
-                  { color: isDarkMode ? Colors.darkTextSecondary : Colors.textSecondary }
-                ]}>
+                <Text style={[styles.loggedInText, { color: colors.text }]}>{email}</Text>
+                <Text style={[styles.userTypeText, { color: colors.grey }]}>
                   {isRescueTeam ? 'Rescue Team Member' : 'Regular User'}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={[
-                styles.logoutButton,
-                {
-                  backgroundColor: isDarkMode ? Colors.darkAccentGrey : Colors.text,
-                  borderWidth: 0,
-                }
-              ]} 
-              onPress={handleLogout}
-            >
-              <MaterialIcons name="logout" size={20} color={isDarkMode ? Colors.text : Colors.primary} />
-              <Text style={[
-                styles.logoutButtonText,
-                { color: isDarkMode ? Colors.text : Colors.primary }
-              ]}>Logout</Text>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <MaterialIcons name="logout" size={20} color={colors.light} />
+              <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      <View style={[
-        styles.section, 
-        { 
-          backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-          borderWidth: 1,
-          borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-        }
-      ]}>
-        <Text style={[styles.sectionTitle, { color: isDarkMode ? Colors.darkText : Colors.text }]}>Preferences</Text>
-        {renderSettingItem('dark-mode', 'Dark Mode', isDarkMode, toggleTheme, true)}
-        {renderSettingItem('notifications', 'Notifications', notifications, () => setNotifications(!notifications), true)}
-        {renderSettingItem('location-on', 'Location Services', locationServices, () => setLocationServices(!locationServices), true)}
-        {renderSettingItem('language', 'Language', language, () => {}, false)}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+        
+        {renderSettingItem(
+          'dark-mode', 
+          'Dark Mode', 
+          isDarkMode, 
+          toggleTheme, 
+          true
+        )}
+        
+        {renderSettingItem(
+          'notifications', 
+          'Notifications', 
+          notifications, 
+          () => setNotifications(!notifications), 
+          true
+        )}
+        
+        {renderSettingItem(
+          'location-on', 
+          'Location Services', 
+          locationServices, 
+          () => setLocationServices(!locationServices), 
+          true
+        )}
+        
+        {renderSettingItem(
+          'language', 
+          'Language', 
+          language, 
+          () => {}, 
+          false
+        )}
       </View>
 
-      <View style={[
-        styles.section, 
-        { 
-          backgroundColor: isDarkMode ? Colors.darkCard : Colors.card,
-          borderWidth: 1,
-          borderColor: isDarkMode ? Colors.darkBorder : Colors.border,
-        }
-      ]}>
-        <Text style={[styles.sectionTitle, { color: isDarkMode ? Colors.darkText : Colors.text }]}>About</Text>
-        {renderSettingItem('info', 'App Version', '1.0.0', () => {}, false)}
-        {renderSettingItem('privacy-tip', 'Privacy Policy', '', () => {}, false)}
-        {renderSettingItem('description', 'Terms of Service', '', () => {}, false)}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
+        
+        {renderSettingItem(
+          'info', 
+          'App Version', 
+          '1.0.0', 
+          () => {}, 
+          false
+        )}
+        
+        {renderSettingItem(
+          'privacy-tip', 
+          'Privacy Policy', 
+          '', 
+          () => {}, 
+          false
+        )}
+        
+        {renderSettingItem(
+          'description', 
+          'Terms of Service', 
+          '', 
+          () => {}, 
+          false
+        )}
       </View>
     </ScrollView>
   );
@@ -321,214 +236,143 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 10,
-  },
-  headerIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    marginBottom: 24,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    letterSpacing: 0.5,
   },
   section: {
     marginBottom: 24,
-    borderRadius: 20,
-    padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 20,
-    letterSpacing: 0.5,
+    marginBottom: 16,
   },
   loginContainer: {
-    gap: 20,
+    gap: 16,
   },
   loginTypeToggle: {
     flexDirection: 'row',
-    borderRadius: 15,
-    padding: 6,
-    marginBottom: 10,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 8,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 8,
+  },
+  activeToggleButton: {
+    backgroundColor: Colors.primary,
   },
   toggleText: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.grey,
+  },
+  activeToggleText: {
+    color: Colors.light,
   },
   input: {
-    borderRadius: 15,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     fontSize: 16,
-    letterSpacing: 0.3,
   },
   loginButton: {
-    borderRadius: 15,
-    padding: 18,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    marginTop: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+    marginTop: 8,
   },
   loginButtonText: {
+    color: Colors.light,
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '600',
   },
   loggedInContainer: {
-    gap: 20,
+    gap: 16,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
   },
   profileIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   profileInfo: {
     flex: 1,
   },
   loggedInText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    letterSpacing: 0.3,
   },
   userTypeText: {
-    fontSize: 15,
-    marginTop: 6,
-    letterSpacing: 0.3,
+    fontSize: 14,
+    marginTop: 4,
   },
   logoutButton: {
-    borderRadius: 15,
-    padding: 18,
+    backgroundColor: Colors.red,
+    borderRadius: 12,
+    padding: 16,
     width: '100%',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    gap: 8,
   },
   logoutButtonText: {
+    color: Colors.light,
     fontSize: 16,
     fontWeight: '600',
-    letterSpacing: 0.5,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderRadius: 12,
-    marginBottom: 10,
   },
   settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    marginRight: 12,
   },
   settingTitle: {
     flex: 1,
     fontSize: 16,
-    letterSpacing: 0.3,
   },
   settingValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   settingValue: {
-    fontSize: 15,
-    marginRight: 6,
-    letterSpacing: 0.3,
+    fontSize: 14,
+    marginRight: 4,
   },
 });
 

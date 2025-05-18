@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View, TouchableOpacity, Text } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/context/ThemeContext";
+import { useRouter } from "expo-router";
 
 const EmergencyActions = ({
   onEmergencyPress,
@@ -10,72 +11,48 @@ const EmergencyActions = ({
   onEmergencyPress: () => void;
   onShelterPress: () => void;
 }) => {
-  const { colors, isDarkMode } = useTheme();
-  const styles = createStyles(colors, isDarkMode);
+  const router = useRouter();
+  const { colors } = useTheme();
 
   return (
     <View style={styles.emergencyButtons}>
       <TouchableOpacity
-        style={[styles.button, styles.emergencyButton]}
-        onPress={onEmergencyPress}
+        style={[styles.button, { backgroundColor: colors.error }]}
+        onPress={() => router.push("/emergency")}
       >
-        <MaterialIcons
-          name="emergency"
-          size={28}
-          color={isDarkMode ? colors.darkCard : colors.card}
-        />
-        <Text style={styles.buttonText}>SOS</Text>
+        <MaterialIcons name="emergency" size={28} color={colors.light} />
+        <Text style={[styles.buttonText, { color: colors.light }]}>SOS</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.button, styles.shelterButton]}
+        style={[styles.button, { backgroundColor: colors.primary }]}
         onPress={onShelterPress}
       >
-        <MaterialIcons
-          name="place"
-          size={28}
-          color={isDarkMode ? colors.darkCard : colors.card}
-        />
-        <Text style={styles.buttonText}>Shelters</Text>
+        <MaterialIcons name="place" size={28} color={colors.light} />
+        <Text style={[styles.buttonText, { color: colors.light }]}>Shelters</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-const createStyles = (colors: any, isDarkMode: boolean) =>
-  StyleSheet.create({
-    emergencyButtons: {
-      flexDirection: "row",
-      gap: 12,
-      marginBottom: 24,
-    },
-    button: {
-      flex: 1,
-      padding: 16,
-      borderRadius: 16,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8,
-      borderWidth: 1,
-      shadowColor: isDarkMode ? colors.darkText : colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    emergencyButton: {
-      backgroundColor: colors.error,
-      borderColor: colors.error,
-    },
-    shelterButton: {
-      backgroundColor: isDarkMode ? colors.darkAccent : colors.accent,
-      borderColor: isDarkMode ? colors.darkBorder : colors.border,
-    },
-    buttonText: {
-      color: isDarkMode ? colors.darkCard : colors.card,
-      fontWeight: "600",
-      fontSize: 16,
-    },
-  });
+const styles = StyleSheet.create({
+  emergencyButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  button: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
 
 export default EmergencyActions;
