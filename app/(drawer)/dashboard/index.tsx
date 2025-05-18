@@ -19,7 +19,7 @@ import Mapbox, {
   VectorSource,
   SymbolLayer,
 } from "@rnmapbox/maps";
-import Colors from "@/constants/Colors";
+import { useTheme } from "@/context/ThemeContext";
 import EmergencyActions from "@/components/EmergencyActions";
 import SavedLocationList from "@/components/SavedLocationList";
 import NavigationModal from "@/components/NavigationModal";
@@ -31,10 +31,10 @@ Mapbox.setAccessToken(access_token);
 
 const DashboardScreen = () => {
   const viewModel = useDashboardViewModel();
+  const { colors, isDarkMode, toggleTheme } = useTheme();
   const translateY = useSharedValue(0);
   const MAX_TRANSLATE_Y = -400;
   const CLOSED_TRANSLATE_Y = 0;
-  const [darkMode, setDarkMode] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number]>([
     32.85411, 39.92077,
   ]);
@@ -150,11 +150,11 @@ const DashboardScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
         style={styles.map}
         styleURL={
-          darkMode
+          isDarkMode
             ? "mapbox://styles/mapbox/navigation-night-v1"
             : "mapbox://styles/mapbox/navigation-day-v1"
         }
@@ -183,7 +183,7 @@ const DashboardScreen = () => {
             id="road-label"
             sourceLayerID="road_label"
             style={{
-              lineColor: darkMode ? "#ffffff" : "#000000",
+              lineColor: isDarkMode ? colors.text : colors.dark,
               lineWidth: 1.5,
             }}
           />
@@ -193,8 +193,8 @@ const DashboardScreen = () => {
             style={{
               textField: ["get", "name_en"],
               textSize: 14,
-              textColor: darkMode ? "#ffffff" : "#000000",
-              textHaloColor: darkMode ? "#000000" : "#ffffff",
+              textColor: isDarkMode ? colors.text : colors.dark,
+              textHaloColor: isDarkMode ? colors.dark : colors.text,
               textHaloWidth: 1,
             }}
           />
@@ -205,7 +205,7 @@ const DashboardScreen = () => {
             coordinate={[selectedLocation.longitude, selectedLocation.latitude]}
           >
             <View style={styles.marker}>
-              <MaterialIcons name="location-pin" size={32} color="green" />
+              <MaterialIcons name="location-pin" size={32} color={colors.primary} />
             </View>
           </MarkerView>
         )}
@@ -215,7 +215,7 @@ const DashboardScreen = () => {
             <LineLayer
               id="routeLayer"
               style={{
-                lineColor: "#FF0000",
+                lineColor: colors.error,
                 lineWidth: 4,
                 lineOpacity: 0.8,
                 lineCap: "round",
@@ -227,16 +227,16 @@ const DashboardScreen = () => {
 
       <View style={styles.topControlsTheme}>
         <TouchableOpacity
-          onPress={() => setDarkMode(!darkMode)}
+          onPress={toggleTheme}
           style={[
             styles.controlButton,
-            { backgroundColor: Colors.light, left: 2, width: 50, height: 50 },
+            { backgroundColor: colors.background, left: 2, width: 50, height: 50 },
           ]}
         >
           <MaterialIcons
-            name={darkMode ? "light-mode" : "dark-mode"}
+            name={isDarkMode ? "light-mode" : "dark-mode"}
             size={24}
-            color={darkMode ? Colors.yellow : Colors.dark}
+            color={isDarkMode ? colors.primary : colors.dark}
           />
         </TouchableOpacity>
       </View>
@@ -245,15 +245,15 @@ const DashboardScreen = () => {
         <View style={styles.zoomContainer}>
           <TouchableOpacity
             onPress={handleZoomIn}
-            style={[styles.controlButton, styles.zoomButton]}
+            style={[styles.controlButton, styles.zoomButton, { backgroundColor: colors.background }]}
           >
-            <MaterialIcons name="zoom-in" size={20} color={Colors.dark} />
+            <MaterialIcons name="zoom-in" size={20} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleZoomOut}
-            style={[styles.controlButton, styles.zoomButton]}
+            style={[styles.controlButton, styles.zoomButton, { backgroundColor: colors.background }]}
           >
-            <MaterialIcons name="zoom-out" size={20} color={Colors.dark} />
+            <MaterialIcons name="zoom-out" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -272,30 +272,37 @@ const DashboardScreen = () => {
             );
           })
           .onEnd((event) => {
+            const shouldClose = event.velocityY > 0 ||
+              translateY.value > (MAX_TRANSLATE_Y + CLOSED_TRANSLATE_Y) / 2;
+            
             translateY.value = withSpring(
-              event.velocityY > 0 ||
-                translateY.value > (MAX_TRANSLATE_Y + CLOSED_TRANSLATE_Y) / 2
-                ? CLOSED_TRANSLATE_Y
-                : MAX_TRANSLATE_Y
+              shouldClose ? CLOSED_TRANSLATE_Y : MAX_TRANSLATE_Y,
+              {
+                damping: 25,
+                stiffness: 80,
+                mass: 1.2,
+                velocity: event.velocityY * 0.5,
+                restDisplacementThreshold: 0.01,
+                restSpeedThreshold: 0.01,
+              }
             );
           })}
       >
         <Animated.View
           style={[
             styles.bottomSheet,
+            { backgroundColor: colors.background },
             useAnimatedStyle(() => ({
-              transform: [
-                { translateY: withSpring(translateY.value, { damping: 20 }) },
-              ],
+              transform: [{ translateY: translateY.value }],
             })),
           ]}
         >
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: colors.grey }]} />
           </View>
 
           <View style={styles.sheetContent}>
-            <Text style={styles.sectionTitle}>Emergency Quick Actions</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Emergency Quick Actions</Text>
             <EmergencyActions
               onEmergencyPress={() => {
                 /* Handle emergency */
@@ -305,7 +312,7 @@ const DashboardScreen = () => {
               }}
             />
 
-            <Text style={styles.sectionTitle}>Saved Safe Locations</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Saved Safe Locations</Text>
             <SavedLocationList
               locations={viewModel.locations}
               onSelectLocation={handleLocationSelect}
@@ -316,8 +323,10 @@ const DashboardScreen = () => {
 
       <NavigationModal
         visible={showPopup}
-        onCancel={() => setShowPopup(false)}
+        onClose={() => setShowPopup(false)}
         onConfirm={handleNavigationConfirm}
+        title="Initiate Emergency Navigation?"
+        message="This route may pass through affected areas. Proceed with caution!"
       />
     </View>
   );
@@ -331,7 +340,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 100,
     right: 20,
-    backgroundColor: "white",
     borderRadius: 20,
     padding: 10,
     elevation: 3,
@@ -341,7 +349,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   marker: {
-    backgroundColor: "white",
     padding: 6,
     borderRadius: 20,
     alignItems: "center",
@@ -353,7 +360,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: -400,
     height: 600,
-    backgroundColor: "white",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: "#000",
@@ -364,17 +370,17 @@ const styles = StyleSheet.create({
     padding: 16,
     zIndex: 3,
   },
-  topControls: {
-    position: "absolute",
-    top: 100,
-    right: 16,
-    gap: 12,
-    zIndex: 2,
-  },
   topControlsTheme: {
     position: "absolute",
     top: 100,
     left: 16,
+    gap: 12,
+    zIndex: 2,
+  },
+  topControls: {
+    position: "absolute",
+    top: 100,
+    right: 16,
     gap: 12,
     zIndex: 2,
   },
@@ -384,7 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.dark,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -392,7 +398,6 @@ const styles = StyleSheet.create({
   },
   zoomContainer: {
     gap: 8,
-    backgroundColor: Colors.light,
     borderRadius: 15,
     padding: 8,
   },
@@ -412,7 +417,6 @@ const styles = StyleSheet.create({
   handle: {
     width: 48,
     height: 4,
-    backgroundColor: Colors.dark + "60",
     borderRadius: 2,
   },
   sheetContent: {
@@ -422,7 +426,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.dark,
     marginBottom: 16,
     marginTop: 6,
   },
@@ -433,7 +436,6 @@ const styles = StyleSheet.create({
   },
   emergencyButton: {
     flex: 1,
-    backgroundColor: Colors.red,
     padding: 16,
     borderRadius: 16,
     flexDirection: "row",
@@ -443,7 +445,6 @@ const styles = StyleSheet.create({
   },
   shelterButton: {
     flex: 1,
-    backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 16,
     flexDirection: "row",
@@ -452,12 +453,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emergencyButtonText: {
-    color: Colors.light,
     fontWeight: "600",
     fontSize: 16,
   },
   safeLocationCard: {
-    backgroundColor: Colors.light,
     borderRadius: 16,
     padding: 16,
     alignItems: "flex-start",
@@ -465,33 +464,32 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 8,
     borderWidth: 2,
-    borderColor: Colors.red,
   },
   locationName: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.dark,
     marginTop: 8,
   },
   locationDistance: {
     fontSize: 14,
-    color: Colors.grey,
     marginTop: 4,
   },
   modalBackdrop: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#00000050",
   },
   navigateButton: {
-    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  cancelText: {
-    color: Colors.dark,
-    fontWeight: "600",
-  },
-  navigateText: {
-    color: Colors.light,
+  buttonText: {
+    fontSize: 16,
     fontWeight: "600",
   },
   zoomButton: {
@@ -510,7 +508,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 20,
     alignSelf: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: "#0000FF",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
@@ -520,9 +518,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  buttonText: {
-    color: Colors.light,
-    fontSize: 16,
+  cancelText: {
+    color: "#000",
+    fontWeight: "600",
+  },
+  navigateText: {
+    color: "#fff",
     fontWeight: "600",
   },
 });

@@ -1,9 +1,9 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
 import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
-import Colors from "@/constants/Colors";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 import { useTheme } from "@/context/ThemeContext";
+import { Platform } from "react-native";
 
 const DrawerLayout = () => {
   const { colors, isDarkMode } = useTheme();
@@ -11,22 +11,22 @@ const DrawerLayout = () => {
   const drawerOptions: DrawerNavigationOptions = {
     headerShown: true,
     headerStyle: {
-      backgroundColor: Colors.primary,
+      backgroundColor: colors.light,
+      height: Platform.OS === "ios" ? 110 : 50,
     },
-    headerTintColor: Colors.light,
-    drawerActiveTintColor: Colors.primary,
-    drawerInactiveTintColor: Colors.grey,
+    headerTintColor: colors.headerText,
+    drawerActiveTintColor: colors.primary,
+    drawerInactiveTintColor: colors.grey,
     drawerActiveBackgroundColor: isDarkMode ? colors.darkGreen : colors.teal,
     drawerStyle: {
-      backgroundColor: colors.card,
+      backgroundColor: colors.background,
       width: 250,
-      borderTopRightRadius: 20,
-      borderBottomRightRadius: 20,
       paddingVertical: 10,
     },
     drawerLabelStyle: {
       fontSize: 16,
       fontWeight: "600",
+      color: colors.text,
     },
     drawerItemStyle: {
       borderRadius: 15,
