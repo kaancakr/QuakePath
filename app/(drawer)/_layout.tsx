@@ -11,18 +11,11 @@ const DrawerLayout = () => {
   const drawerOptions: DrawerNavigationOptions = {
     headerShown: true,
     headerStyle: {
-      backgroundColor: colors.headerBackground,
-      shadowColor: "transparent",
-      height: 110,
+      backgroundColor: Colors.primary,
     },
-    headerTitleStyle: {
-      color: colors.headerText,
-      fontSize: 18,
-      fontWeight: "bold",
-    },
-    headerTintColor: colors.headerText,
-    drawerActiveTintColor: colors.light,
-    drawerInactiveTintColor: colors.grey,
+    headerTintColor: Colors.light,
+    drawerActiveTintColor: Colors.primary,
+    drawerInactiveTintColor: Colors.grey,
     drawerActiveBackgroundColor: isDarkMode ? colors.darkGreen : colors.teal,
     drawerStyle: {
       backgroundColor: colors.card,
@@ -45,14 +38,23 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="dashboard/index"
         options={{
-          title: "Ana Sayfa",
+          title: "Dashboard",
           drawerIcon: ({ color }) => (
-            <FontAwesome5 name="home" size={20} color={color} />
+            <MaterialIcons name="dashboard" size={24} color={color} />
           ),
         }}
       />
       <Drawer.Screen
-        name="bookings"
+        name="emergency/index"
+        options={{
+          title: "Acil Durum",
+          drawerIcon: ({ color }) => (
+            <MaterialIcons name="emergency" size={24} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="bookings/index"
         options={{
           title: "Bookings",
           drawerIcon: ({ color }) => (
@@ -61,7 +63,7 @@ const DrawerLayout = () => {
         }}
       />
       <Drawer.Screen
-        name="payments"
+        name="payments/index"
         options={{
           title: "Payments",
           drawerIcon: ({ color }) => (
@@ -70,7 +72,7 @@ const DrawerLayout = () => {
         }}
       />
       <Drawer.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: "Profile",
           drawerIcon: ({ color }) => (
@@ -78,21 +80,21 @@ const DrawerLayout = () => {
           ),
         }}
       />
-      <Drawer.Screen 
+      <Drawer.Screen
         name="help/index"
         options={{
-          title: "Help",
+          title: "Yardım",
           drawerIcon: ({ color }) => (
-            <MaterialIcons name="help" size={20} color={color} />
+            <MaterialIcons name="help" size={24} color={color} />
           ),
         }}
       />
       <Drawer.Screen
         name="settings/index"
         options={{
-          title: "Settings",
+          title: "Ayarlar",
           drawerIcon: ({ color }) => (
-            <MaterialIcons name="settings" size={20} color={color} />
+            <MaterialIcons name="settings" size={24} color={color} />
           ),
         }}
       />
