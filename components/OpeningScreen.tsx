@@ -3,11 +3,8 @@ import {
   View,
   StyleSheet,
   StatusBar,
-  Image,
   Animated,
   Easing,
-  Text,
-  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
@@ -97,18 +94,7 @@ const OpeningScreen = () => {
           ]}
           resizeMode="contain"
         />
-        <Text style={[styles.title, { color: colors.text }]}>Welcome to QuakePath</Text>
-        <Text style={[styles.subtitle, { color: colors.grey }]}>
-          Your trusted companion for earthquake safety and emergency navigation
-        </Text>
       </View>
-
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.error }]}
-        onPress={() => router.replace("/(drawer)/dashboard")}
-      >
-        <Text style={[styles.buttonText, { color: colors.light }]}>Get Started</Text>
-      </TouchableOpacity>
     </Animated.View>
   );
 };

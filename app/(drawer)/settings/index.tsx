@@ -21,7 +21,7 @@ const SettingsScreen = () => {
   const [isRescueTeam, setIsRescueTeam] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('Türkçe');
 
   const handleLogin = () => {
     // TODO: Implement actual login logic
@@ -74,12 +74,12 @@ const SettingsScreen = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Ayarlar</Text>
         <MaterialIcons name="settings" size={24} color={colors.primary} />
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hesap</Text>
         
         {!isLoggedIn ? (
           <View style={styles.loginContainer}>
@@ -94,7 +94,7 @@ const SettingsScreen = () => {
                 <Text style={[
                   styles.toggleText, 
                   !isRescueTeam && styles.activeToggleText
-                ]}>User</Text>
+                ]}>Kullanıcı</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[
@@ -106,7 +106,7 @@ const SettingsScreen = () => {
                 <Text style={[
                   styles.toggleText, 
                   isRescueTeam && styles.activeToggleText
-                ]}>Rescue Team</Text>
+                ]}>Kurtarma Ekibi</Text>
               </TouchableOpacity>
             </View>
 
@@ -116,7 +116,7 @@ const SettingsScreen = () => {
                 borderColor: isDarkMode ? '#444' : '#e0e0e0',
                 color: colors.text
               }]}
-              placeholder="Email"
+              placeholder="E-posta"
               placeholderTextColor={colors.grey}
               value={email}
               onChangeText={setEmail}
@@ -129,7 +129,7 @@ const SettingsScreen = () => {
                 borderColor: isDarkMode ? '#444' : '#e0e0e0',
                 color: colors.text
               }]}
-              placeholder="Password"
+              placeholder="Şifre"
               placeholderTextColor={colors.grey}
               value={password}
               onChangeText={setPassword}
@@ -137,7 +137,7 @@ const SettingsScreen = () => {
             />
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>
-                {isRescueTeam ? 'Login as Rescue Team' : 'Login'}
+                {isRescueTeam ? 'Kurtarma Ekibi Olarak Giriş Yap' : 'Giriş Yap'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -154,24 +154,24 @@ const SettingsScreen = () => {
               <View style={styles.profileInfo}>
                 <Text style={[styles.loggedInText, { color: colors.text }]}>{email}</Text>
                 <Text style={[styles.userTypeText, { color: colors.grey }]}>
-                  {isRescueTeam ? 'Rescue Team Member' : 'Regular User'}
+                  {isRescueTeam ? 'Kurtarma Ekibi Üyesi' : 'Normal Kullanıcı'}
                 </Text>
               </View>
             </View>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <MaterialIcons name="logout" size={20} color={colors.light} />
-              <Text style={styles.logoutButtonText}>Logout</Text>
+              <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tercihler</Text>
         
         {renderSettingItem(
           'dark-mode', 
-          'Dark Mode', 
+          'Karanlık Mod', 
           isDarkMode, 
           toggleTheme, 
           true
@@ -179,7 +179,7 @@ const SettingsScreen = () => {
         
         {renderSettingItem(
           'notifications', 
-          'Notifications', 
+          'Bildirimler', 
           notifications, 
           () => setNotifications(!notifications), 
           true
@@ -187,7 +187,7 @@ const SettingsScreen = () => {
         
         {renderSettingItem(
           'location-on', 
-          'Location Services', 
+          'Konum Servisleri', 
           locationServices, 
           () => setLocationServices(!locationServices), 
           true
@@ -195,7 +195,7 @@ const SettingsScreen = () => {
         
         {renderSettingItem(
           'language', 
-          'Language', 
+          'Dil', 
           language, 
           () => {}, 
           false
@@ -203,11 +203,11 @@ const SettingsScreen = () => {
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hakkında</Text>
         
         {renderSettingItem(
           'info', 
-          'App Version', 
+          'Uygulama Versiyonu', 
           '1.0.0', 
           () => {}, 
           false
@@ -215,7 +215,7 @@ const SettingsScreen = () => {
         
         {renderSettingItem(
           'privacy-tip', 
-          'Privacy Policy', 
+          'Gizlilik Politikası', 
           '', 
           () => {}, 
           false
@@ -223,7 +223,7 @@ const SettingsScreen = () => {
         
         {renderSettingItem(
           'description', 
-          'Terms of Service', 
+          'Kullanım Koşulları', 
           '', 
           () => {}, 
           false

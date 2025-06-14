@@ -84,7 +84,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lightGreen: '#3c7340',
         teal: '#264d4a',
         darkTeal: '#1a3533',
-        error: '#cf6679',
+        error: '#FF0000',
       };
     }
     

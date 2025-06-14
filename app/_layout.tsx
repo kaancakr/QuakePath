@@ -78,12 +78,10 @@ export default function Layout() {
 const MainLayout = () => {
   const { colors } = useTheme();
   const router = useRouter();
-  const [showOnboarding, setShowOnboarding] = useState(true);
   const [expoPushToken, setExpoPushToken] = useState("");
   const [notification, setNotification] = useState<
     Notifications.Notification | undefined
   >(undefined);
-  const [appReady, setAppReady] = useState(false);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
@@ -107,28 +105,6 @@ const MainLayout = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const initializeApp = async () => {
-      const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setShowOnboarding(!hasSeenOnboarding);
-      setAppReady(true);
-
-      if (hasSeenOnboarding) {
-        router.replace("/(drawer)/dashboard");
-      } else {
-        router.replace("/onboardingScreen");
-      }
-    };
-
-    initializeApp();
-  }, []);
-
-  if (!appReady) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
-  }
-
   return (
     <Stack
       screenOptions={{
@@ -136,14 +112,7 @@ const MainLayout = () => {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      {showOnboarding ? (
-        <Stack.Screen
-          name="onboardingScreen"
-          options={{ headerShown: false }}
-        />
-      ) : (
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      )}
+      <Stack.Screen name="index" options={{ headerShown: false }} />
     </Stack>
   );
 };

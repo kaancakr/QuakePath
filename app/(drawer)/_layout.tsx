@@ -1,6 +1,11 @@
 import React from "react";
 import { Drawer } from "expo-router/drawer";
-import { FontAwesome5, MaterialIcons, Feather, Ionicons } from "@expo/vector-icons";
+import {
+  FontAwesome5,
+  MaterialIcons,
+  Feather,
+  Ionicons,
+} from "@expo/vector-icons";
 import type { DrawerNavigationOptions } from "@react-navigation/drawer";
 import { useTheme } from "@/context/ThemeContext";
 import { Platform } from "react-native";
@@ -36,15 +41,6 @@ const DrawerLayout = () => {
   return (
     <Drawer screenOptions={drawerOptions}>
       <Drawer.Screen
-        name="dashboard/index"
-        options={{
-          title: "Dashboard",
-          drawerIcon: ({ color }) => (
-            <MaterialIcons name="dashboard" size={24} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
         name="emergency/index"
         options={{
           title: "Acil Durum",
@@ -54,29 +50,20 @@ const DrawerLayout = () => {
         }}
       />
       <Drawer.Screen
-        name="bookings/index"
+        name="mesh/index"
         options={{
-          title: "Bookings",
+          title: "Mesh Ağı",
           drawerIcon: ({ color }) => (
-            <MaterialIcons name="calendar-today" size={20} color={color} />
+            <MaterialIcons name="wifi" size={24} color={color} />
           ),
         }}
       />
       <Drawer.Screen
-        name="payments/index"
+        name="dashboard/index"
         options={{
-          title: "Payments",
+          title: "Ana Sayfa",
           drawerIcon: ({ color }) => (
-            <Feather name="dollar-sign" size={20} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="profile/index"
-        options={{
-          title: "Profile",
-          drawerIcon: ({ color }) => (
-            <FontAwesome5 name="user" size={20} color={color} />
+            <MaterialIcons name="dashboard" size={24} color={color} />
           ),
         }}
       />
@@ -86,6 +73,15 @@ const DrawerLayout = () => {
           title: "Yardım",
           drawerIcon: ({ color }) => (
             <MaterialIcons name="help" size={24} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="profile/index"
+        options={{
+          title: "Profil",
+          drawerIcon: ({ color }) => (
+            <FontAwesome5 name="user" size={20} color={color} />
           ),
         }}
       />

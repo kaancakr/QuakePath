@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuakePath - Mesh Network Admin</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 class="header-title">
+                <span class="brand">QuakePath</span>
+                <span class="header-subtitle">Mesh Network Admin</span>
+            </h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Devices</h3>
+                <p id="totalDevices">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Online Devices</h3>
+                <p id="onlineDevices">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Messages</h3>
+                <p id="totalMessages">0</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">Connected Devices</h2>
+        <div class="devices-list">
+            <div id="devicesList">
+                <div class="empty-state">
+                    <p>No devices connected</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Recent Messages</h2>
+        <div class="messages-list">
+            <div id="messagesList">
+                <div class="empty-state">
+                    <p>No messages received yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="connectionStatus" class="connection-status disconnected">Disconnected</div>
+
+    <script>
+        const socket = io();
+        const devicesList = document.getElementById('devicesList');
+        const messagesList = document.getElementById('messagesList');
+        const totalDevicesElement = document.getElementById('totalDevices');
+        const onlineDevicesElement = document.getElementById('onlineDevices');
+        const totalMessagesElement = document.getElementById('totalMessages');
+        const connectionStatus = document.getElementById('connectionStatus');
+        let messageCount = 0;
+
+        // Connection status handling
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.className = 'connection-status connected';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'connection-status disconnected';
+        });
+
+        function updateStats(devices) {
+            totalDevicesElement.textContent = devices.length;
+            onlineDevicesElement.textContent = devices.filter(d => d.status === 'online').length;
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function updateDevicesList(devices) {
+            if (devices.length === 0) {
+                devicesList.innerHTML = `
+                    <div class="empty-state">
+                        <p>No devices connected</p>
+                    </div>
+                `;
+                return;
+            }
+
+            devicesList.innerHTML = devices.map(device => `
+                <div class="device-item">
+                    <div>
+                        <div class="device-id">${device.id}</div>
+                        <div class="timestamp">Last seen: ${formatDate(device.lastSeen)}</div>
+                        <div class="device-info">
+                            Platform: ${device.platform || 'Unknown'}<br>
+                            Version: ${device.version || 'Unknown'}
+                        </div>
+                    </div>
+                    <div class="status ${device.status}">${device.status}</div>
+                </div>
+            `).join('');
+        }
+
+        function addMessage(message) {
+            messageCount++;
+            totalMessagesElement.textContent = messageCount;
+            
+            // Remove empty state if it exists
+            if (messagesList.querySelector('.empty-state')) {
+                messagesList.innerHTML = '';
+            }
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message-item';
+            
+            // Format the message data for display
+            let messageContent = '';
+            try {
+                if (typeof message.data === 'object') {
+                    messageContent = JSON.stringify(message.data, null, 2);
+                } else {
+                    messageContent = message.data;
+                }
+            } catch (error) {
+                messageContent = 'Error formatting message data';
+                console.error('Error formatting message:', error);
+            }
+
+            messageElement.innerHTML = `
+                <div class="message-header">
+                    <span>From: ${message.sender}</span>
+                    <span>${formatDate(new Date())}</span>
+                </div>
+                <div class="message-content">${messageContent}</div>
+            `;
+            
+            messagesList.insertBefore(messageElement, messagesList.firstChild);
+            
+            // Keep only last 50 messages
+            while (messagesList.children.length > 50) {
+                messagesList.removeChild(messagesList.lastChild);
+            }
+        }
+
+        socket.on('devicesUpdate', (devices) => {
+            console.log('Devices update received:', devices);
+            updateStats(devices);
+            updateDevicesList(devices);
+        });
+
+        socket.on('meshMessage', (message) => {
+            console.log('Message received:', message);
+            if (message && message.sender && message.data) {
+                addMessage(message);
+            } else {
+                console.error('Invalid message format:', message);
+            }
+        });
+
+        // Initial load
+        fetch('/api/devices')
+            .then(response => response.json())
+            .then(devices => {
+                console.log('Initial devices load:', devices);
+                updateStats(devices);
+                updateDevicesList(devices);
+            })
+            .catch(error => {
+                console.error('Error loading initial devices:', error);
+            });
+    </script>
+</body>
+</html> 
