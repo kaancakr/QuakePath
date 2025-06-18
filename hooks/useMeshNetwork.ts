@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 const SERVER_URL = Platform.select({
   web: 'http://localhost:3000',
-  default: 'http://192.168.1.217:3000'
+  default: 'http://localhost:3000'
 });
 
 interface Device {
