@@ -47,19 +47,21 @@ const DashboardScreen = () => {
   const [showPopup, setShowPopup] = useState(false);
   const cameraRef = useRef<Camera>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
+  const [hasCentered, setHasCentered] = useState(false);
 
   const isDefaultLocation =
     userLocation[0] === 32.85411 && userLocation[1] === 39.92077;
 
   useEffect(() => {
-    if (cameraRef.current) {
+    if (!hasCentered && cameraRef.current) {
       cameraRef.current.setCamera({
         centerCoordinate: userLocation,
         zoomLevel: zoomLevel,
         animationDuration: 1000,
       });
+      setHasCentered(true);
     }
-  }, [userLocation, zoomLevel]);
+  }, [userLocation, zoomLevel, hasCentered]);
 
   const fetchRoute = async (destination: {
     latitude: number;

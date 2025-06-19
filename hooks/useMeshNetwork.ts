@@ -3,8 +3,8 @@ import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 
 const SERVER_URL = Platform.select({
-  web: 'http://localhost:3000',
-  default: 'http://localhost:3000'
+  web: 'http://192.168.68.117:3000',
+  default: 'http://192.168.68.117:3000'
 });
 
 interface Device {

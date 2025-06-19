@@ -101,7 +101,7 @@ app.get('/admin', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '92.44.28.45', () => {
+server.listen(PORT, '192.168.68.117', () => {
   console.log(`Server running on http://92.44.28.45:${PORT}`);
   console.log(`Admin console available at: http://92.44.28.45:${PORT}/admin`);
   console.log(`Static files being served from: ${path.join(__dirname, 'public')}`);
