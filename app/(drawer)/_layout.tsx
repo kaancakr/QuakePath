@@ -22,7 +22,7 @@ const DrawerLayout = () => {
     headerTintColor: colors.headerText,
     drawerActiveTintColor: colors.primary,
     drawerInactiveTintColor: colors.grey,
-    drawerActiveBackgroundColor: isDarkMode ? colors.darkGreen : colors.teal,
+    drawerActiveBackgroundColor: isDarkMode ? colors.grey : colors.greyLight,
     drawerStyle: {
       backgroundColor: colors.background,
       width: 250,

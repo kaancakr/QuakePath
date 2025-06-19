@@ -11,7 +11,13 @@ interface NavigationModalProps {
   message: string;
 }
 
-const NavigationModal = ({ visible, onClose, onConfirm, title, message }: NavigationModalProps) => {
+const NavigationModal = ({
+  visible,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}: NavigationModalProps) => {
   const { colors } = useTheme();
 
   return (
@@ -20,24 +26,46 @@ const NavigationModal = ({ visible, onClose, onConfirm, title, message }: Naviga
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      presentationStyle="overFullScreen"
     >
-      <View style={[styles.modalOverlay, { backgroundColor: colors.dark + '80' }]}>
-        <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+      <View
+        style={[styles.modalOverlay, { backgroundColor: colors.background }]}
+      >
+        <View
+          style={[styles.modalContent, { backgroundColor: colors.background }]}
+        >
           <MaterialIcons name="warning" size={40} color={colors.error} />
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: colors.text }]}>{message}</Text>
+          <Text style={[styles.message, { color: colors.text }]}>
+            {message}
+          </Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+              style={[
+                styles.button,
+                styles.cancelButton,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
               onPress={onClose}
             >
-              <Text style={[styles.buttonText, { color: colors.text }]}>Cancel</Text>
+              <Text style={[styles.buttonText, { color: colors.text }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.confirmButton, { backgroundColor: colors.primary }]}
+              style={[
+                styles.button,
+                styles.confirmButton,
+                { backgroundColor: colors.primary },
+              ]}
               onPress={onConfirm}
             >
-              <Text style={[styles.buttonText, { color: colors.light }]}>Confirm</Text>
+              <Text style={[styles.buttonText, { color: colors.light }]}>
+                Confirm
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

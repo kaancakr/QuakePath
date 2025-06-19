@@ -18,6 +18,7 @@ import Mapbox, {
   LineLayer,
   VectorSource,
   SymbolLayer,
+  UserLocation,
 } from "@rnmapbox/maps";
 import { useTheme } from "@/context/ThemeContext";
 import EmergencyActions from "@/components/EmergencyActions";
@@ -46,6 +47,9 @@ const DashboardScreen = () => {
   const [showPopup, setShowPopup] = useState(false);
   const cameraRef = useRef<Camera>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
+
+  const isDefaultLocation =
+    userLocation[0] === 32.85411 && userLocation[1] === 39.92077;
 
   useEffect(() => {
     if (cameraRef.current) {
@@ -119,9 +123,11 @@ const DashboardScreen = () => {
   };
 
   const handleNavigationConfirm = async () => {
-    console.log("Navigation confirmed");
+    if (isDefaultLocation) {
+      alert("Waiting for your current location...");
+      return;
+    }
     if (selectedLocation) {
-      console.log("Starting route to:", selectedLocation);
       await fetchRoute(selectedLocation);
       setShowPopup(false);
     }
@@ -166,14 +172,14 @@ const DashboardScreen = () => {
           animationDuration={1000}
         />
         <LocationPuck puckBearingEnabled puckBearing="heading" />
-        {/* <UserLocation
+        <UserLocation
           onUpdate={(location) => {
             setUserLocation([
               location.coords.longitude,
               location.coords.latitude,
             ]);
           }}
-        /> */}
+        />
 
         <VectorSource
           id="mapbox-streets"
@@ -343,13 +349,17 @@ const DashboardScreen = () => {
         </Animated.View>
       </GestureDetector>
 
-      <NavigationModal
-        visible={showPopup}
-        onClose={() => setShowPopup(false)}
-        onConfirm={handleNavigationConfirm}
-        title="Initiate Emergency Navigation?"
-        message="This route may pass through affected areas. Proceed with caution!"
-      />
+      <View
+        style={{ position: "absolute", bottom: 0, left: 0, right: 0, top: 0 }}
+      >
+        <NavigationModal
+          visible={showPopup}
+          onClose={() => setShowPopup(false)}
+          onConfirm={handleNavigationConfirm}
+          title="Initiate Emergency Navigation?"
+          message="This route may pass through affected areas. Proceed with caution!"
+        />
+      </View>
     </View>
   );
 };

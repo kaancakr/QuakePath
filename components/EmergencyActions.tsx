@@ -25,7 +25,7 @@ const EmergencyActions = ({
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, { backgroundColor: colors.primary }]}
-        onPress={onShelterPress}
+        onPress={() => alert('Shelters not available now')}
       >
         <MaterialIcons name="place" size={28} color={colors.light} />
         <Text style={[styles.buttonText, { color: colors.light }]}>Shelters</Text>
