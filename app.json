@@ -18,7 +18,9 @@
       "bundleIdentifier": "com.ckrdevelopment.QuakePath",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show relevant map information",
-        "NSLocationWhenInUseDescription": "This app uses your location to show relevant map information"
+        "NSLocationWhenInUseDescription": "This app uses your location to show relevant map information",
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect with nearby devices for emergency communication",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect with nearby devices for emergency communication"
       }
     },
     "android": {
@@ -29,8 +31,11 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_ADVERTISE"
       ],
       "package": "com.ckrdevelopment.QuakePath"
     },

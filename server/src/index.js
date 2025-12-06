@@ -61,19 +61,47 @@ io.on('connection', (socket) => {
   // Handle mesh network messages
   socket.on('meshMessage', (data, callback) => {
     try {
-      // Log the emergency alert
-      console.log('Emergency alert received:', {
+      console.log('Mesh message received:', {
         from: socket.id,
         data: data
       });
 
-      // Broadcast message to all devices except sender
-      const broadcastData = {
-        sender: socket.id,
-        data: data
-      };
-      console.log('Broadcasting emergency alert:', broadcastData);
-      socket.broadcast.emit('meshMessage', broadcastData);
+      // Check if this is a new format message (has type and content)
+      if (data.type && data.content) {
+        // New mesh message format
+        const message = {
+          ...data,
+          sender: socket.id,
+          timestamp: data.timestamp || new Date().toISOString(),
+        };
+
+        // If recipient is specified, send to that device only
+        if (data.recipient && data.recipient !== socket.id) {
+          const recipientSocket = io.sockets.sockets.get(data.recipient);
+          if (recipientSocket) {
+            console.log(`Sending message to specific device: ${data.recipient}`);
+            recipientSocket.emit('meshMessage', message);
+          } else {
+            console.warn(`Recipient device not found: ${data.recipient}`);
+            if (callback) {
+              callback(new Error('Recipient device not found'));
+            }
+            return;
+          }
+        } else {
+          // Broadcast to all devices except sender
+          console.log('Broadcasting message to all devices');
+          socket.broadcast.emit('meshMessage', message);
+        }
+      } else {
+        // Legacy emergency alert format
+        const broadcastData = {
+          sender: socket.id,
+          data: data
+        };
+        console.log('Broadcasting emergency alert (legacy format):', broadcastData);
+        socket.broadcast.emit('meshMessage', broadcastData);
+      }
 
       // Send acknowledgment back to sender
       if (callback) {
@@ -101,7 +129,7 @@ app.get('/admin', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '192.168.68.117', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://92.44.28.45:${PORT}`);
   console.log(`Admin console available at: http://92.44.28.45:${PORT}/admin`);
   console.log(`Static files being served from: ${path.join(__dirname, 'public')}`);
