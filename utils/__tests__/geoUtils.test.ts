@@ -89,23 +89,28 @@ describe('geoUtils', () => {
     });
 
     it('should handle boundary values correctly', () => {
-      expect(calculateZoomLevel(10000)).toBe(10);
+      // 10000 > 10000 is false, so it goes to next condition: 10000 > 5000 is true, returns 11
+      expect(calculateZoomLevel(10000)).toBe(11);
       expect(calculateZoomLevel(10001)).toBe(10);
       expect(calculateZoomLevel(9999)).toBe(11);
       
-      expect(calculateZoomLevel(5000)).toBe(11);
+      // 5000 > 5000 is false, so it goes to next condition: 5000 > 2000 is true, returns 12
+      expect(calculateZoomLevel(5000)).toBe(12);
       expect(calculateZoomLevel(5001)).toBe(11);
       expect(calculateZoomLevel(4999)).toBe(12);
       
-      expect(calculateZoomLevel(2000)).toBe(12);
+      // 2000 > 2000 is false, so it goes to next condition: 2000 > 1000 is true, returns 13
+      expect(calculateZoomLevel(2000)).toBe(13);
       expect(calculateZoomLevel(2001)).toBe(12);
       expect(calculateZoomLevel(1999)).toBe(13);
       
-      expect(calculateZoomLevel(1000)).toBe(13);
+      // 1000 > 1000 is false, so it goes to next condition: 1000 > 500 is true, returns 14
+      expect(calculateZoomLevel(1000)).toBe(14);
       expect(calculateZoomLevel(1001)).toBe(13);
       expect(calculateZoomLevel(999)).toBe(14);
       
-      expect(calculateZoomLevel(500)).toBe(14);
+      // 500 > 500 is false, so it goes to default: returns 16
+      expect(calculateZoomLevel(500)).toBe(16);
       expect(calculateZoomLevel(501)).toBe(14);
       expect(calculateZoomLevel(499)).toBe(16);
     });

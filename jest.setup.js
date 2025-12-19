@@ -1,8 +1,6 @@
-// Mock React Native modules
+// Mock React Native modules - Full mock to avoid TurboModuleRegistry issues
 jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
   return {
-    ...RN,
     Platform: {
       OS: 'ios',
       select: jest.fn((obj) => obj.ios || obj.default),
@@ -19,6 +17,15 @@ jest.mock('react-native', () => {
         GRANTED: 'granted',
         DENIED: 'denied',
       },
+    },
+    Settings: {
+      get: jest.fn(),
+      set: jest.fn(),
+    },
+    NativeModules: {},
+    TurboModuleRegistry: {
+      get: jest.fn(),
+      getEnforcing: jest.fn(() => ({})),
     },
   };
 });
