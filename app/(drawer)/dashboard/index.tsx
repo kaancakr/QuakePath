@@ -24,6 +24,7 @@ import Mapbox, {
   LocationPuck,
   MapView,
   MarkerView,
+  PointAnnotation,
   ShapeSource,
   LineLayer,
   VectorSource,
@@ -81,6 +82,14 @@ const DashboardScreen = () => {
     `${Platform.OS}-${Math.random().toString(36).slice(2, 10)}`
   );
 
+  const formatTime = (d: Date) => {
+    const date = new Date(d);
+    return `${date.getHours().toString().padStart(2, "0")}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
   const isDefaultLocation =
     userLocation[0] === 32.85411 && userLocation[1] === 39.92077;
 
@@ -93,7 +102,7 @@ const DashboardScreen = () => {
       });
       setHasCentered(true);
     }
-  }, [userLocation, zoomLevel, hasCentered]);
+  }, [hasCentered, userLocation, zoomLevel]);
 
   useEffect(() => {
     const unsubscribe = subscribeEmergencies(setEmergencies);
@@ -170,9 +179,9 @@ const DashboardScreen = () => {
         lat: current.coords.latitude,
         lng: current.coords.longitude,
         message: "Emergency reported",
+        initialMessageText: "Emergency reported",
       });
 
-      setEmergencies((prev) => [record, ...prev]);
       setSelectedEmergency(record);
     } catch (error) {
       console.error("Error sending emergency:", error);
@@ -207,13 +216,27 @@ const DashboardScreen = () => {
   const handleSelectEmergency = (emergency: EmergencyRecord) => {
     setSelectedEmergency(emergency);
     setRoute(null);
+
+    const distance = calculateDistance(userLocation, [
+      emergency.lng,
+      emergency.lat,
+    ]);
+
     if (cameraRef.current) {
       cameraRef.current.setCamera({
         centerCoordinate: [emergency.lng, emergency.lat],
-        zoomLevel: 15,
+        zoomLevel: calculateZoomLevel(distance),
         animationDuration: 800,
+        animationMode: "flyTo",
       });
     }
+  };
+
+  const handleCloseEmergency = () => {
+    setSelectedEmergency(null);
+    setEmergencyMessages([]);
+    setEmergencyMessageText("");
+    setRoute(null);
   };
 
   const handleSendEmergencyMessage = async () => {
@@ -294,9 +317,10 @@ const DashboardScreen = () => {
       >
         <Camera
           ref={cameraRef}
-          centerCoordinate={userLocation}
-          zoomLevel={zoomLevel}
-          animationDuration={1000}
+          defaultSettings={{
+            centerCoordinate: userLocation,
+            zoomLevel: zoomLevel,
+          }}
         />
         <LocationPuck puckBearingEnabled puckBearing="heading" />
         <UserLocation
@@ -376,20 +400,21 @@ const DashboardScreen = () => {
         )}
 
         {emergencies.map((emergency) => (
-          <MarkerView
+          <PointAnnotation
             key={emergency.id}
+            id={emergency.id}
             coordinate={[emergency.lng, emergency.lat]}
+            onSelected={() => handleSelectEmergency(emergency)}
           >
-            <TouchableOpacity
-              onPress={() => handleSelectEmergency(emergency)}
+            <View
               style={[
                 styles.emergencyMarker,
                 { backgroundColor: colors.error },
               ]}
             >
               <MaterialIcons name="warning" size={20} color="white" />
-            </TouchableOpacity>
-          </MarkerView>
+            </View>
+          </PointAnnotation>
         ))}
       </MapView>
 
@@ -504,9 +529,7 @@ const DashboardScreen = () => {
               Emergency Quick Actions
             </Text>
             <EmergencyActions
-              onEmergencyPress={() => {
-                /* Handle emergency */
-              }}
+              onEmergencyPress={handleRaiseEmergency}
               onShelterPress={() => {
                 /* Handle shelters */
               }}
@@ -534,15 +557,24 @@ const DashboardScreen = () => {
           ]}
         >
           <View style={styles.emergencyPanelHeader}>
-            <Text style={[styles.panelTitle, { color: colors.text }]}>
-              Emergency Alert
-            </Text>
-            <Text style={[styles.panelSub, { color: colors.grey }]}>
-              {selectedEmergency.message}
-            </Text>
-            <Text style={[styles.panelLocation, { color: colors.grey }]}>
-              {selectedEmergency.lat.toFixed(3)}, {selectedEmergency.lng.toFixed(3)}
-            </Text>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[styles.panelTitle, { color: colors.text }]}>
+                Emergency Alert
+              </Text>
+              <Text style={[styles.panelSub, { color: colors.grey }]}>
+                {selectedEmergency.message}
+              </Text>
+              <Text style={[styles.panelLocation, { color: colors.grey }]}>
+                {selectedEmergency.lat.toFixed(3)}, {selectedEmergency.lng.toFixed(3)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleCloseEmergency}
+              style={styles.closeButton}
+              accessibilityLabel="Close emergency panel"
+            >
+              <MaterialIcons name="close" size={20} color={colors.error} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.emergencyMessages}>
@@ -580,6 +612,9 @@ const DashboardScreen = () => {
                     </Text>
                     <Text style={[styles.messageText, { color: colors.text }]}>
                       {msg.text}
+                    </Text>
+                    <Text style={[styles.messageTime, { color: colors.grey }]}>
+                      {formatTime(msg.createdAt)}
                     </Text>
                   </View>
                 ))
@@ -886,6 +921,9 @@ const styles = StyleSheet.create({
   },
   emergencyPanelHeader: {
     gap: 4,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
   },
   panelTitle: {
     fontSize: 16,
@@ -920,6 +958,10 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 14,
   },
+  messageTime: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   messageInputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -937,6 +979,14 @@ const styles = StyleSheet.create({
   sendMessageButton: {
     padding: 10,
     borderRadius: 12,
+  },
+  closeButton: {
+    padding: 6,
+    marginLeft: 8,
+    alignSelf: "flex-start",
+    borderWidth: 2,
+    borderColor: "#FF0000",
+    borderRadius: 10
   },
 });
 

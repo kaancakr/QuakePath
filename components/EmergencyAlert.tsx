@@ -93,6 +93,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onAlertSent }) =
           lat: location.latitude,
           lng: location.longitude,
           message: alertData.message,
+          initialMessageText: alertData.message,
         }),
       ]);
       onAlertSent?.();

@@ -41,6 +41,7 @@ export const createEmergencyAlert = async (input: {
   lng: number;
   message: string;
   status?: EmergencyStatus;
+  initialMessageText?: string;
 }) => {
   const payload = {
     userId: input.userId,
@@ -52,6 +53,14 @@ export const createEmergencyAlert = async (input: {
   };
 
   const ref = await addDoc(emergenciesRef, payload);
+
+  // Seed first message from creator so UI shows initial content
+  const messagesRef = collection(emergenciesRef, ref.id, "messages");
+  await addDoc(messagesRef, {
+    senderId: input.userId,
+    text: input.initialMessageText ?? input.message,
+    createdAt: serverTimestamp(),
+  });
 
   return {
     id: ref.id,

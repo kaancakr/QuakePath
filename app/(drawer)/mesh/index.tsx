@@ -13,7 +13,7 @@ import {
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/context/ThemeContext";
-import { useNearbyMesh } from "@/hooks/useNearbyMesh";
+import { useMeshNetwork } from "@/hooks/useMeshNetwork";
 
 export default function TestMeshScreen() {
   const {
@@ -22,7 +22,7 @@ export default function TestMeshScreen() {
     sendMessage,
     messageHistory,
     deviceId,
-  } = useNearbyMesh();
+  } = useMeshNetwork();
   const { colors, isDarkMode } = useTheme();
   const [messageText, setMessageText] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<
@@ -47,7 +47,7 @@ export default function TestMeshScreen() {
     }
 
     try {
-      await sendMessage(messageText);
+      await sendMessage(messageText, "chat");
       setMessageText("");
       setSelectedRecipient(undefined);
     } catch (error) {
@@ -56,7 +56,7 @@ export default function TestMeshScreen() {
     }
   };
 
-  const formatMessageTime = (timestamp: string) => {
+  const formatMessageTime = (timestamp: string | Date) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -170,9 +170,11 @@ export default function TestMeshScreen() {
               <Text style={[styles.deviceListTitle, { color: colors.text }]}>
                 Connected Devices
               </Text>
-              {connectedDevices.map((id, index) => (
-                <View key={id}>
-                  <Text>{id.substring(0, 8)}</Text>
+              {connectedDevices.map((device) => (
+                <View key={device.id}>
+                  <Text>
+                    {(device.name || device.id).substring(0, 12)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -305,9 +307,11 @@ export default function TestMeshScreen() {
                     All
                   </Text>
                 </TouchableOpacity>
-                {connectedDevices.map((id, index) => (
-                  <View key={id}>
-                    <Text>{id.substring(0, 8)}</Text>
+                {connectedDevices.map((device) => (
+                  <View key={device.id}>
+                    <Text>
+                      {(device.name || device.id).substring(0, 12)}
+                    </Text>
                   </View>
                 ))}
               </ScrollView>

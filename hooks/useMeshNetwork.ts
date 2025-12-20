@@ -20,7 +20,6 @@ import { NativeModules, NativeEventEmitter } from "react-native";
 
 const MESH_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 const MESH_CHAR_WRITE = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-const MESH_ADVERTISING_NAME = "QuakePathMesh";
 
 const MAX_CONNECTED_DEVICES = 10;
 const DEVICE_RETENTION_MS = 60_000;
@@ -79,6 +78,7 @@ export const useMeshNetwork = () => {
   const connectedMap = useRef<Map<string, Device>>(new Map());
   const processingRef = useRef<Set<string>>(new Set());
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const seenScanRef = useRef<Set<string>>(new Set());
 
   const meshEmitterRef = useRef<NativeEventEmitter | null>(null);
 
@@ -96,12 +96,23 @@ export const useMeshNetwork = () => {
   ======================= */
 
   const requestPermissions = async () => {
-    if (Platform.OS !== "android") return;
-    await PermissionsAndroid.requestMultiple([
+    if (Platform.OS !== "android") return true;
+    const result = await PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     ]);
+
+    const denied = Object.entries(result)
+      .filter(([, value]) => value !== PermissionsAndroid.RESULTS.GRANTED)
+      .map(([key]) => key);
+
+    if (denied.length) {
+      console.warn("[useMeshNetwork] permissions denied:", denied);
+      return false;
+    }
+    return true;
   };
 
   /* =======================
@@ -110,7 +121,11 @@ export const useMeshNetwork = () => {
 
   useEffect(() => {
     const init = async () => {
-      await requestPermissions();
+      const ok = await requestPermissions();
+      if (!ok) {
+        console.warn("[useMeshNetwork] required permissions not granted, aborting start");
+        return;
+      }
       const state = await managerRef.current.state();
       if (state === "PoweredOn") {
         startMesh();
@@ -142,9 +157,28 @@ export const useMeshNetwork = () => {
   const startScanning = async () => {
     if (isScanning) return;
     setIsScanning(true);
+    console.log("[useMeshNetwork] startDeviceScan()");
 
     managerRef.current.startDeviceScan(null, null, (err, device) => {
-      if (err || !device?.id || !device.isConnectable) return;
+      if (err) {
+        console.warn("[useMeshNetwork] scan error", err);
+        return;
+      }
+      if (!device?.id) return;
+
+      if (!seenScanRef.current.has(device.id)) {
+        seenScanRef.current.add(device.id);
+        console.log(
+          "[useMeshNetwork] seen device",
+          device.id,
+          "name=",
+          device.name,
+          "isConnectable=",
+          device.isConnectable
+        );
+      }
+
+      if (!device.isConnectable) return;
       if (connectedMap.current.has(device.id)) return;
       if (processingRef.current.has(device.id)) return;
       connectToDevice(device);
@@ -154,6 +188,7 @@ export const useMeshNetwork = () => {
   const stopScanning = () => {
     managerRef.current.stopDeviceScan();
     setIsScanning(false);
+    console.log("[useMeshNetwork] stopDeviceScan()");
   };
 
   /* =======================
@@ -162,7 +197,7 @@ export const useMeshNetwork = () => {
 
   const startAdvertising = async () => {
     if (Platform.OS === "android") {
-      const ok = await startMeshAdvertising(MESH_SERVICE_UUID, MESH_ADVERTISING_NAME);
+      const ok = await startMeshAdvertising(MESH_SERVICE_UUID);
       if (ok) {
         setIsAdvertising(true);
       }
@@ -190,6 +225,11 @@ export const useMeshNetwork = () => {
       const services = await d.services();
       const mesh = services.find((s) => s.uuid === MESH_SERVICE_UUID);
       if (!mesh) {
+        console.log(
+          "[useMeshNetwork] device missing mesh service, skipping",
+          device.id,
+          device.name
+        );
         await d.cancelConnection();
         return;
       }
