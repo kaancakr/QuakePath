@@ -1,5 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, TouchableOpacity, View, Text } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  Platform,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,6 +18,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
 import SearchHeader from "../../../components/SearchHeader";
 import { calculateDistance, calculateZoomLevel } from "@/utils/geoUtils";
+import * as Location from "expo-location";
 import Mapbox, {
   Camera,
   LocationPuck,
@@ -20,11 +30,20 @@ import Mapbox, {
   SymbolLayer,
   UserLocation,
 } from "@rnmapbox/maps";
+import { Feature, LineString } from "geojson";
 import { useTheme } from "@/context/ThemeContext";
 import EmergencyActions from "@/components/EmergencyActions";
 import SavedLocationList from "@/components/SavedLocationList";
 import NavigationModal from "@/components/NavigationModal";
 import useDashboardViewModel from "../../../hooks/useDashboardModel";
+import {
+  createEmergencyAlert,
+  EmergencyMessage,
+  EmergencyRecord,
+  sendEmergencyMessage,
+  subscribeEmergencies,
+  subscribeEmergencyMessages,
+} from "@/utils/firebaseEmergency";
 
 const access_token =
   "REMOVED_MAPBOX_PUBLIC_TOKEN";
@@ -48,6 +67,19 @@ const DashboardScreen = () => {
   const cameraRef = useRef<Camera>(null);
   const [zoomLevel, setZoomLevel] = useState(12);
   const [hasCentered, setHasCentered] = useState(false);
+  const [emergencies, setEmergencies] = useState<EmergencyRecord[]>([]);
+  const [selectedEmergency, setSelectedEmergency] =
+    useState<EmergencyRecord | null>(null);
+  const [emergencyMessages, setEmergencyMessages] = useState<
+    EmergencyMessage[]
+  >([]);
+  const [emergencyMessageText, setEmergencyMessageText] = useState("");
+  const [isSendingEmergency, setIsSendingEmergency] = useState(false);
+  const [isSendingEmergencyMessage, setIsSendingEmergencyMessage] =
+    useState(false);
+  const deviceIdRef = useRef(
+    `${Platform.OS}-${Math.random().toString(36).slice(2, 10)}`
+  );
 
   const isDefaultLocation =
     userLocation[0] === 32.85411 && userLocation[1] === 39.92077;
@@ -62,6 +94,23 @@ const DashboardScreen = () => {
       setHasCentered(true);
     }
   }, [userLocation, zoomLevel, hasCentered]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeEmergencies(setEmergencies);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!selectedEmergency) {
+      setEmergencyMessages([]);
+      return;
+    }
+    const unsubscribe = subscribeEmergencyMessages(
+      selectedEmergency.id,
+      setEmergencyMessages
+    );
+    return unsubscribe;
+  }, [selectedEmergency?.id]);
 
   const fetchRoute = async (destination: {
     latitude: number;
@@ -102,6 +151,37 @@ const DashboardScreen = () => {
     }
   };
 
+  const handleRaiseEmergency = async () => {
+    if (isSendingEmergency) return;
+    setIsSendingEmergency(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Location required",
+          "Please allow location access to send an emergency."
+        );
+        return;
+      }
+
+      const current = await Location.getCurrentPositionAsync({});
+      const record = await createEmergencyAlert({
+        userId: deviceIdRef.current,
+        lat: current.coords.latitude,
+        lng: current.coords.longitude,
+        message: "Emergency reported",
+      });
+
+      setEmergencies((prev) => [record, ...prev]);
+      setSelectedEmergency(record);
+    } catch (error) {
+      console.error("Error sending emergency:", error);
+      Alert.alert("Error", "Could not send emergency. Please try again.");
+    } finally {
+      setIsSendingEmergency(false);
+    }
+  };
+
   const handleLocationSelect = (location: {
     latitude: number;
     longitude: number;
@@ -123,6 +203,51 @@ const DashboardScreen = () => {
     setSelectedLocation(location);
     setShowPopup(true);
   };
+
+  const handleSelectEmergency = (emergency: EmergencyRecord) => {
+    setSelectedEmergency(emergency);
+    setRoute(null);
+    if (cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: [emergency.lng, emergency.lat],
+        zoomLevel: 15,
+        animationDuration: 800,
+      });
+    }
+  };
+
+  const handleSendEmergencyMessage = async () => {
+    if (!selectedEmergency || !emergencyMessageText.trim()) return;
+    setIsSendingEmergencyMessage(true);
+    try {
+      await sendEmergencyMessage({
+        emergencyId: selectedEmergency.id,
+        senderId: deviceIdRef.current,
+        text: emergencyMessageText.trim(),
+      });
+      setEmergencyMessageText("");
+    } catch (error) {
+      console.error("Error sending emergency message:", error);
+      Alert.alert("Error", "Message could not be sent. Please try again.");
+    } finally {
+      setIsSendingEmergencyMessage(false);
+    }
+  };
+
+  const emergencyLine = useMemo<Feature<LineString> | null>(() => {
+    if (!selectedEmergency) return null;
+    return {
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          userLocation,
+          [selectedEmergency.lng, selectedEmergency.lat],
+        ],
+      },
+      properties: {},
+    };
+  }, [selectedEmergency, userLocation]);
 
   const handleNavigationConfirm = async () => {
     if (isDefaultLocation) {
@@ -235,7 +360,54 @@ const DashboardScreen = () => {
             />
           </ShapeSource>
         )}
+
+        {emergencyLine && (
+          <ShapeSource id="emergencyLineSource" shape={emergencyLine}>
+            <LineLayer
+              id="emergencyLineLayer"
+              style={{
+                lineColor: colors.error,
+                lineWidth: 3,
+                lineOpacity: 0.9,
+                lineDasharray: [1, 1.2],
+              }}
+            />
+          </ShapeSource>
+        )}
+
+        {emergencies.map((emergency) => (
+          <MarkerView
+            key={emergency.id}
+            coordinate={[emergency.lng, emergency.lat]}
+          >
+            <TouchableOpacity
+              onPress={() => handleSelectEmergency(emergency)}
+              style={[
+                styles.emergencyMarker,
+                { backgroundColor: colors.error },
+              ]}
+            >
+              <MaterialIcons name="warning" size={20} color="white" />
+            </TouchableOpacity>
+          </MarkerView>
+        ))}
       </MapView>
+
+      <View style={styles.emergencyFabContainer}>
+        <TouchableOpacity
+          onPress={handleRaiseEmergency}
+          disabled={isSendingEmergency}
+          style={[
+            styles.emergencyFab,
+            { opacity: isSendingEmergency ? 0.7 : 1, backgroundColor: colors.error },
+          ]}
+        >
+          <MaterialIcons name="emergency" size={22} color="#fff" />
+          <Text style={[styles.emergencyFabText, { color: "#fff" }]}>
+            {isSendingEmergency ? "Sending..." : "Send SOS"}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.topControlsTheme}>
         <TouchableOpacity
@@ -351,6 +523,109 @@ const DashboardScreen = () => {
         </Animated.View>
       </GestureDetector>
 
+      {selectedEmergency && (
+        <View
+          style={[
+            styles.emergencyPanel,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.emergencyPanelHeader}>
+            <Text style={[styles.panelTitle, { color: colors.text }]}>
+              Emergency Alert
+            </Text>
+            <Text style={[styles.panelSub, { color: colors.grey }]}>
+              {selectedEmergency.message}
+            </Text>
+            <Text style={[styles.panelLocation, { color: colors.grey }]}>
+              {selectedEmergency.lat.toFixed(3)}, {selectedEmergency.lng.toFixed(3)}
+            </Text>
+          </View>
+
+          <View style={styles.emergencyMessages}>
+            <Text style={[styles.panelTitle, { color: colors.text }]}>
+              Messages
+            </Text>
+            <ScrollView
+              style={styles.messagesList}
+              contentContainerStyle={styles.messagesListContent}
+            >
+              {emergencyMessages.length === 0 ? (
+                <Text style={{ color: colors.grey }}>No messages yet.</Text>
+              ) : (
+                emergencyMessages.map((msg) => (
+                  <View
+                    key={msg.id}
+                    style={[
+                      styles.messageBubble,
+                      {
+                        backgroundColor:
+                          msg.senderId === deviceIdRef.current
+                            ? colors.primary + "15"
+                            : colors.background,
+                        borderColor:
+                          msg.senderId === deviceIdRef.current
+                            ? colors.primary
+                            : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.messageSender, { color: colors.text }]}
+                    >
+                      {msg.senderId === deviceIdRef.current ? "You" : msg.senderId}
+                    </Text>
+                    <Text style={[styles.messageText, { color: colors.text }]}>
+                      {msg.text}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            <View
+              style={[
+                styles.messageInputRow,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <TextInput
+                style={[styles.messageInputBox, { color: colors.text }]}
+                placeholder="Send a message to this alert"
+                placeholderTextColor={colors.grey}
+                value={emergencyMessageText}
+                onChangeText={setEmergencyMessageText}
+                editable={!isSendingEmergencyMessage}
+              />
+              <TouchableOpacity
+                onPress={handleSendEmergencyMessage}
+                disabled={
+                  isSendingEmergencyMessage ||
+                  !emergencyMessageText.trim() ||
+                  !selectedEmergency
+                }
+                style={[
+                  styles.sendMessageButton,
+                  {
+                    backgroundColor:
+                      emergencyMessageText.trim() && !isSendingEmergencyMessage
+                        ? colors.primary
+                        : colors.grey,
+                  },
+                ]}
+              >
+                <MaterialIcons name="send" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       <View
         style={{ position: "absolute", bottom: 0, left: 0, right: 0, top: 0 }}
       >
@@ -387,6 +662,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+  emergencyMarker: {
+    padding: 8,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
   },
   bottomSheet: {
     position: "absolute",
@@ -559,6 +844,99 @@ const styles = StyleSheet.create({
   navigateText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  emergencyFabContainer: {
+    position: "absolute",
+    right: 16,
+    bottom: 140,
+    zIndex: 3,
+  },
+  emergencyFab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  emergencyFabText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  emergencyPanel: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 4,
+    gap: 8,
+  },
+  emergencyPanelHeader: {
+    gap: 4,
+  },
+  panelTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  panelSub: {
+    fontSize: 14,
+  },
+  panelLocation: {
+    fontSize: 12,
+  },
+  emergencyMessages: {
+    gap: 8,
+  },
+  messagesList: {
+    maxHeight: 180,
+    marginVertical: 8,
+  },
+  messagesListContent: {
+    gap: 8,
+  },
+  messageBubble: {
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  messageSender: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  messageText: {
+    fontSize: 14,
+  },
+  messageInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  messageInputBox: {
+    flex: 1,
+    paddingVertical: 6,
+    fontSize: 14,
+  },
+  sendMessageButton: {
+    padding: 10,
+    borderRadius: 12,
   },
 });
 
