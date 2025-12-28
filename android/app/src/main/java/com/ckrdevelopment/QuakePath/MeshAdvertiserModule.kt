@@ -1,35 +1,45 @@
 package com.ckrdevelopment.QuakePath
 
-import com.ckrdevelopment.QuakePath.ble.MeshGattServer
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class MeshAdvertiserModule(
-  private val reactContext: ReactApplicationContext
+    private val reactContext: ReactApplicationContext
 ) : ReactContextBaseJavaModule(reactContext) {
 
-  private val gattServer = MeshGattServer(reactContext) { message ->
-    sendEvent("MeshMessageReceived", message)
-  }
+    // Now correctly refers to MeshGattServer in the same package
+    private val gattServer = MeshGattServer(reactContext) { message ->
+        sendEvent("MeshMessageReceived", message)
+    }
 
-  override fun getName(): String = "MeshAdvertiser"
+    override fun getName(): String = "MeshAdvertiser"
 
-  @ReactMethod
-  fun startServer(promise: Promise) {
-    gattServer.start()
-    gattServer.startAdvertising() // 🔥 BUNU EKLEMEZSEK ÇALIŞMAZ
-    promise.resolve(true)
-  }
+    @ReactMethod
+    fun startServer(promise: Promise?) {
+        try {
+            gattServer.start()
+            gattServer.startAdvertising()
+            promise?.resolve(true)
+            android.util.Log.d("MeshAdvertiser", "GATT server started and advertising")
+        } catch (e: Exception) {
+            android.util.Log.e("MeshAdvertiser", "Failed to start server", e)
+            promise?.reject("START_ERROR", e.message, e)
+        }
+    }
 
-  @ReactMethod
-  fun stopServer(promise: Promise) {
-    gattServer.stop()
-    promise.resolve(true)
-  }
+    @ReactMethod
+    fun stopServer(promise: Promise?) {
+        try {
+            gattServer.stop()
+            promise?.resolve(true)
+        } catch (e: Exception) {
+            promise?.reject("STOP_ERROR", e.message, e)
+        }
+    }
 
-  private fun sendEvent(eventName: String, data: String) {
-    reactContext
-      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      .emit(eventName, data)
-  }
+    private fun sendEvent(eventName: String, data: String) {
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit(eventName, data)
+    }
 }
