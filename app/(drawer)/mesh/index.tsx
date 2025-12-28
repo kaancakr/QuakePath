@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -9,16 +9,28 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  Vibration,
 } from "react-native";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/context/ThemeContext";
 import { useMeshNetwork } from "@/hooks/useMeshNetwork";
+import * as Notifications from "expo-notifications";
 
 export default function TestMeshScreen() {
   const {
     isConnected,
+    isScanning,
+    startScanning,
+    stopScanning,
     connectedDevices,
+    scannedDevices,
+    scanError,
+    lastScanEvent,
+    connectScannedDevice,
+    sendEmergencyAlert,
+    onEmergencyAlert,
     sendMessage,
     messageHistory,
     deviceId,
@@ -28,6 +40,99 @@ export default function TestMeshScreen() {
   const [selectedRecipient, setSelectedRecipient] = useState<
     string | undefined
   >(undefined);
+  const messageScrollRef = useRef<ScrollView>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const previousMessageCount = useRef(messageHistory.length);
+  const notificationBorderAnim = useRef(new Animated.Value(0)).current;
+  const [showNotificationBorder, setShowNotificationBorder] = useState(false);
+
+  // Play notification sound using expo-notifications
+  const playNotificationSound = async () => {
+    try {
+      // Schedule a local notification with sound (it will play immediately)
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "New Message",
+          body: "You have a new message",
+          sound: true,
+        },
+        trigger: null, // null means trigger immediately
+      });
+    } catch (error) {
+      console.log("Notification sound not available, using vibration only");
+    }
+  };
+
+  useEffect(() => {
+    if (isScanning) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isScanning]);
+
+  // Handle new message notifications
+  useEffect(() => {
+    const currentCount = messageHistory.length;
+    const previousCount = previousMessageCount.current;
+
+    // Check if a new message arrived (not sent by current user)
+    if (currentCount > previousCount && messageHistory.length > 0) {
+      const lastMessage = messageHistory[messageHistory.length - 1];
+      const isOwnMessage = lastMessage.sender === deviceId;
+
+      // Only notify for messages from others
+      if (!isOwnMessage) {
+        // Vibrate
+        Vibration.vibrate(Platform.OS === "ios" ? [0, 200, 50, 200] : [0, 300, 100, 300]);
+        
+        // Play sound
+        playNotificationSound();
+
+        // Show red border indicator
+        setShowNotificationBorder(true);
+        notificationBorderAnim.setValue(0);
+        Animated.sequence([
+          Animated.timing(notificationBorderAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: false,
+          }),
+          Animated.delay(800),
+          Animated.timing(notificationBorderAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: false,
+          }),
+        ]).start(() => {
+          setShowNotificationBorder(false);
+          notificationBorderAnim.setValue(0);
+        });
+      }
+    }
+
+    previousMessageCount.current = currentCount;
+
+    // Auto-scroll to bottom when new message arrives
+    if (messageHistory.length > 0) {
+      setTimeout(() => {
+        messageScrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messageHistory.length, messageHistory, deviceId]);
 
   const handleAlertSent = () => {
     Alert.alert("Success", "Emergency alert sent to all connected devices", [
@@ -74,285 +179,669 @@ export default function TestMeshScreen() {
     return `Device ${peerId.substring(0, 6)}`;
   };
 
-  return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Mesh Network
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.grey }]}>
-            Emergency Communication System
-          </Text>
-        </View>
+  const getRSSIStrength = (rssi: number | null | undefined) => {
+    if (rssi == null) return null;
+    if (rssi >= -50) return { label: "Excellent", color: colors.primary };
+    if (rssi >= -70) return { label: "Good", color: colors.primary };
+    if (rssi >= -85) return { label: "Fair", color: colors.grey };
+    return { label: "Weak", color: colors.error };
+  };
 
-        <View
-          style={[styles.statusContainer, { backgroundColor: colors.card }]}
-        >
-          <View style={styles.statusHeader}>
-            <View style={styles.statusIconContainer}>
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
               <MaterialCommunityIcons
-                name={isConnected ? "wifi" : "wifi-off"}
-                size={28}
-                color={isConnected ? colors.primary : colors.error}
+                name="network"
+                size={32}
+                color={colors.primary}
               />
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor: isConnected
-                      ? colors.primary
-                      : colors.error,
-                  },
-                ]}
-              />
-            </View>
-            <View style={styles.statusTextContainer}>
-              <Text style={[styles.statusText, { color: colors.text }]}>
-                {isConnected ? "Network Connected" : "Network Disconnected"}
-              </Text>
-              <Text style={[styles.statusSubtext, { color: colors.grey }]}>
-                {isConnected
-                  ? "Ready to communicate"
-                  : "Searching for network..."}
-              </Text>
+              <View style={styles.headerTextContainer}>
+                <Text style={[styles.title, { color: colors.text }]}>
+                  Mesh Network
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.grey }]}>
+                  Emergency Communication System
+                </Text>
+              </View>
             </View>
           </View>
 
+          {/* Status Card */}
           <View
             style={[
-              styles.deviceStats,
+              styles.statusCard,
               {
-                backgroundColor: isDarkMode
-                  ? colors.darkGreen
-                  : colors.sky + "20",
-                borderColor: isDarkMode ? colors.darkGreen : colors.sky,
+                backgroundColor: colors.card,
+                borderColor: isConnected ? colors.primary + "40" : colors.border,
               },
             ]}
           >
-            <View
-              style={[
-                styles.deviceIconContainer,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="devices"
-                size={24}
-                color={colors.primary}
-              />
+            <View style={styles.statusHeader}>
+              <Animated.View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    backgroundColor: isConnected
+                      ? colors.primary + "20"
+                      : colors.error + "20",
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={isConnected ? "wifi" : "wifi-off"}
+                  size={32}
+                  color={isConnected ? colors.primary : colors.error}
+                />
+                <View
+                  style={[
+                    styles.statusPulse,
+                    {
+                      backgroundColor: isConnected
+                        ? colors.primary
+                        : colors.error,
+                    },
+                  ]}
+                />
+              </Animated.View>
+              <View style={styles.statusInfo}>
+                <Text style={[styles.statusTitle, { color: colors.text }]}>
+                  {isConnected ? "Network Active" : "Network Inactive"}
+                </Text>
+                <Text style={[styles.statusSubtitle, { color: colors.grey }]}>
+                  {isConnected
+                    ? `${connectedDevices.length} device${connectedDevices.length !== 1 ? "s" : ""} connected`
+                    : isScanning
+                    ? "Scanning for devices..."
+                    : "Tap to start scanning"}
+                </Text>
+              </View>
             </View>
-            <View style={styles.deviceTextContainer}>
-              <Text style={[styles.deviceCount, { color: colors.text }]}>
-                {connectedDevices.length}
-              </Text>
-              <Text style={[styles.deviceText, { color: colors.grey }]}>
-                Device{connectedDevices.length !== 1 ? "s" : ""} Connected
-              </Text>
+
+            {/* Scan Controls */}
+            <View style={styles.scanSection}>
+              <TouchableOpacity
+                style={[
+                  styles.scanButton,
+                  {
+                    backgroundColor: isScanning
+                      ? colors.error
+                      : colors.primary,
+                    opacity: isScanning ? 0.9 : 1,
+                  },
+                ]}
+                onPress={() => (isScanning ? stopScanning() : startScanning())}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name={isScanning ? "stop-circle" : "radar"}
+                  size={20}
+                  color="white"
+                />
+                <Text style={styles.scanButtonText}>
+                  {isScanning ? "Stop Scanning" : "Start Scanning"}
+                </Text>
+              </TouchableOpacity>
+              {scanError && (
+                <View style={styles.errorContainer}>
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={16}
+                    color={colors.error}
+                  />
+                  <Text style={[styles.errorText, { color: colors.error }]}>
+                    {scanError}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
+          {/* Connected Devices Summary */}
           {connectedDevices.length > 0 && (
             <View
               style={[
-                styles.deviceList,
+                styles.summaryCard,
                 {
-                  backgroundColor: isDarkMode
-                    ? colors.darkGreen
-                    : colors.sky + "20",
-                  borderColor: isDarkMode ? colors.darkGreen : colors.sky,
+                  backgroundColor: colors.card,
+                  borderLeftColor: colors.primary,
+                  borderLeftWidth: 4,
                 },
               ]}
             >
-              <Text style={[styles.deviceListTitle, { color: colors.text }]}>
-                Connected Devices
-              </Text>
-              {connectedDevices.map((device) => (
-                <View key={device.id}>
-                  <Text>
-                    {(device.name || device.id).substring(0, 12)}
+              <View style={styles.summaryHeader}>
+                <MaterialCommunityIcons
+                  name="account-group"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={[styles.summaryTitle, { color: colors.text }]}>
+                  Connected Devices
+                </Text>
+                <View
+                  style={[
+                    styles.badge,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.badgeText, { color: colors.primary }]}
+                  >
+                    {connectedDevices.length}
                   </Text>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={[styles.alertContainer, { backgroundColor: colors.card }]}>
-          <EmergencyAlert onAlertSent={handleAlertSent} />
-        </View>
-
-        {/* Message History */}
-        <View
-          style={[styles.messageContainer, { backgroundColor: colors.card }]}
-        >
-          <View style={styles.messageHeader}>
-            <Text style={[styles.messageTitle, { color: colors.text }]}>
-              Messages
-            </Text>
-            {/* Clear button removed: new mesh hook does not expose clearMessageHistory */}
-          </View>
-
-          <ScrollView
-            style={styles.messageList}
-            contentContainerStyle={styles.messageListContent}
-          >
-            {messageHistory.length === 0 ? (
-              <View style={styles.emptyMessageContainer}>
-                <MaterialCommunityIcons
-                  name="message-outline"
-                  size={48}
-                  color={colors.grey}
-                />
-                <Text style={[styles.emptyMessageText, { color: colors.grey }]}>
-                  No messages yet. Start a conversation!
-                </Text>
               </View>
-            ) : (
-              messageHistory.map((message) => {
-                const isOwnMessage = message.sender === deviceId;
-                return (
-                  <View
-                    key={message.id}
-                    style={[
-                      styles.messageBubble,
-                      isOwnMessage ? styles.ownMessage : styles.receivedMessage,
-                      {
-                        backgroundColor: isOwnMessage
-                          ? colors.primary + "20"
-                          : isDarkMode
-                          ? colors.darkGreen
-                          : colors.sky + "20",
-                        borderColor: isOwnMessage
-                          ? colors.primary
-                          : colors.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.messageHeaderBubble}>
-                      <Text
-                        style={[styles.messageSender, { color: colors.text }]}
-                      >
-                        {isOwnMessage ? "You" : getDeviceName(message.sender)}
-                      </Text>
-                      <Text
-                        style={[styles.messageTime, { color: colors.grey }]}
-                      >
-                        {formatMessageTime(message.timestamp)}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.messageContent, { color: colors.text }]}
-                    >
-                      {message.content}
-                    </Text>
-                    {message.type !== "chat" && (
-                      <View style={styles.messageTypeBadge}>
-                        <Text
-                          style={[
-                            styles.messageTypeText,
-                            { color: colors.primary },
-                          ]}
-                        >
-                          {message.type}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </ScrollView>
-        </View>
-
-        {/* Message Input */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-        >
-          <View
-            style={[
-              styles.inputContainer,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            {connectedDevices.length > 1 && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                style={styles.recipientSelector}
+                style={styles.deviceChips}
               >
+                {connectedDevices.map((device) => (
+                  <View
+                    key={device.id}
+                    style={[
+                      styles.deviceChip,
+                      {
+                        backgroundColor: colors.primary + "15",
+                        borderColor: colors.primary + "40",
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="check-circle"
+                      size={16}
+                      color={colors.primary}
+                    />
+                    <Text
+                      style={[styles.deviceChipText, { color: colors.text }]}
+                    >
+                      {device.name || device.id.substring(0, 8)}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Scanned Devices List */}
+          <View
+            style={[
+              styles.devicesCard,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons
+                name="bluetooth"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                Available Devices
+              </Text>
+              {scannedDevices.length > 0 && (
+                <View
+                  style={[
+                    styles.badge,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.badgeText, { color: colors.primary }]}
+                  >
+                    {scannedDevices.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {scannedDevices.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons
+                  name={isScanning ? "radar" : "bluetooth-off"}
+                  size={48}
+                  color={colors.grey}
+                />
+                <Text style={[styles.emptyStateText, { color: colors.grey }]}>
+                  {isScanning
+                    ? "Searching for devices..."
+                    : "No devices found. Start scanning to discover nearby devices."}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.deviceList}>
+                {scannedDevices.map((device, index) => {
+                  const alreadyConnected = connectedDevices.some(
+                    (d) => d.id === device.id
+                  );
+                  const rssiInfo = getRSSIStrength(device.rssi);
+                  return (
+                    <TouchableOpacity
+                      key={device.id}
+                      style={[
+                        styles.deviceRow,
+                        index !== scannedDevices.length - 1 && {
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border + "40",
+                        },
+                        alreadyConnected && {
+                          backgroundColor: colors.primary + "08",
+                        },
+                      ]}
+                      onPress={() => !alreadyConnected && connectScannedDevice(device.id)}
+                      disabled={alreadyConnected || device.isConnectable === false}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[
+                          styles.deviceIconWrapper,
+                          {
+                            backgroundColor: alreadyConnected
+                              ? colors.primary + "20"
+                              : colors.background,
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={
+                            alreadyConnected
+                              ? "check-circle"
+                              : device.isConnectable === false
+                              ? "bluetooth-off"
+                              : "bluetooth-connect"
+                          }
+                          size={22}
+                          color={
+                            alreadyConnected
+                              ? colors.primary
+                              : device.isConnectable === false
+                              ? colors.grey
+                              : colors.primary
+                          }
+                        />
+                      </View>
+                      <View style={styles.deviceInfo}>
+                        <Text
+                          style={[styles.deviceName, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {device.name || `Device ${device.id.substring(0, 8)}`}
+                        </Text>
+                        <View style={styles.deviceMeta}>
+                          {rssiInfo && (
+                            <View
+                              style={[
+                                styles.rssiBadge,
+                                { backgroundColor: rssiInfo.color + "20" },
+                              ]}
+                            >
+                              <View
+                                style={[
+                                  styles.rssiDot,
+                                  { backgroundColor: rssiInfo.color },
+                                ]}
+                              />
+                              <Text
+                                style={[
+                                  styles.rssiText,
+                                  { color: rssiInfo.color },
+                                ]}
+                              >
+                                {device.rssi} dBm
+                              </Text>
+                            </View>
+                          )}
+                          <Text
+                            style={[styles.deviceStatus, { color: colors.grey }]}
+                          >
+                            {alreadyConnected
+                              ? "Connected"
+                              : device.isConnectable === false
+                              ? "Not available"
+                              : "Tap to connect"}
+                          </Text>
+                        </View>
+                      </View>
+                      {!alreadyConnected && device.isConnectable !== false && (
+                        <MaterialCommunityIcons
+                          name="chevron-right"
+                          size={20}
+                          color={colors.grey}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          {/* Emergency Alert Section */}
+          <View
+            style={[
+              styles.alertCard,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons
+                name="alert-octagon"
+                size={20}
+                color={colors.error}
+              />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                Emergency Alert
+              </Text>
+            </View>
+            <EmergencyAlert
+              onAlertSent={handleAlertSent}
+              mesh={{
+                isConnected,
+                connectedDevices,
+                sendEmergencyAlert,
+                onEmergencyAlert,
+                deviceId,
+              }}
+            />
+          </View>
+
+          {/* Messages Section */}
+          <Animated.View
+            style={[
+              styles.messagesCard,
+              { 
+                backgroundColor: colors.card,
+                borderWidth: notificationBorderAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0, 4, 0],
+                }),
+                borderColor: notificationBorderAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: ['transparent', colors.error, 'transparent'],
+                }),
+                shadowColor: notificationBorderAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: ['#000', colors.error, '#000'],
+                }),
+                shadowOpacity: notificationBorderAnim.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.08, 0.3, 0.08],
+                }),
+              },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons
+                name="message-text"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                Messages
+              </Text>
+              {messageHistory.length > 0 && (
+                <View
+                  style={[
+                    styles.badge,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.badgeText, { color: colors.primary }]}
+                  >
+                    {messageHistory.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <ScrollView
+              ref={messageScrollRef}
+              style={styles.messageScroll}
+              contentContainerStyle={styles.messageContent}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
+              {messageHistory.length === 0 ? (
+                <View style={styles.emptyMessageState}>
+                  <MaterialCommunityIcons
+                    name="message-outline"
+                    size={56}
+                    color={colors.grey + "60"}
+                  />
+                  <Text
+                    style={[styles.emptyMessageText, { color: colors.grey }]}
+                  >
+                    No messages yet
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyMessageSubtext,
+                      { color: colors.grey },
+                    ]}
+                  >
+                    Start a conversation with connected devices
+                  </Text>
+                </View>
+              ) : (
+                messageHistory.map((message) => {
+                  const isOwnMessage = message.sender === deviceId;
+                  return (
+                    <View
+                      key={message.id}
+                      style={[
+                        styles.messageBubble,
+                        isOwnMessage ? styles.ownMessage : styles.receivedMessage,
+                        {
+                          backgroundColor: isOwnMessage
+                            ? colors.primary + "25"
+                            : isDarkMode
+                            ? colors.darkGreen + "60"
+                            : colors.sky + "25",
+                          borderColor: isOwnMessage
+                            ? colors.primary + "40"
+                            : colors.border + "40",
+                        },
+                      ]}
+                    >
+                      <View style={styles.messageHeaderRow}>
+                        <View style={styles.messageSenderRow}>
+                          <MaterialCommunityIcons
+                            name={
+                              isOwnMessage ? "account-circle" : "account"
+                            }
+                            size={14}
+                            color={isOwnMessage ? colors.primary : colors.grey}
+                          />
+                          <Text
+                            style={[
+                              styles.messageSender,
+                              {
+                                color: isOwnMessage
+                                  ? colors.primary
+                                  : colors.text,
+                              },
+                            ]}
+                          >
+                            {isOwnMessage ? "You" : getDeviceName(message.sender)}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.messageTime, { color: colors.grey }]}
+                        >
+                          {formatMessageTime(message.timestamp)}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.messageText, { color: colors.text }]}
+                      >
+                        {message.content}
+                      </Text>
+                      {message.type !== "chat" && (
+                        <View
+                          style={[
+                            styles.messageTypeTag,
+                            { backgroundColor: colors.primary + "20" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.messageTypeLabel,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {message.type.toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </ScrollView>
+
+      {/* Message Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border + "40",
+            },
+          ]}
+        >
+          {connectedDevices.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.recipientScroll}
+              contentContainerStyle={styles.recipientContainer}
+            >
+              <TouchableOpacity
+                onPress={() => setSelectedRecipient(undefined)}
+                style={[
+                  styles.recipientChip,
+                  !selectedRecipient && styles.recipientChipActive,
+                  {
+                    backgroundColor: !selectedRecipient
+                      ? colors.primary
+                      : colors.background,
+                    borderColor: !selectedRecipient
+                      ? colors.primary
+                      : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.recipientChipText,
+                    {
+                      color: !selectedRecipient ? "white" : colors.text,
+                    },
+                  ]}
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
+              {connectedDevices.map((device) => (
                 <TouchableOpacity
-                  onPress={() => setSelectedRecipient(undefined)}
+                  key={device.id}
+                  onPress={() => setSelectedRecipient(device.id)}
                   style={[
                     styles.recipientChip,
-                    !selectedRecipient && styles.selectedRecipientChip,
+                    selectedRecipient === device.id &&
+                      styles.recipientChipActive,
                     {
-                      backgroundColor: !selectedRecipient
-                        ? colors.primary
-                        : colors.background,
-                      borderColor: colors.border,
+                      backgroundColor:
+                        selectedRecipient === device.id
+                          ? colors.primary
+                          : colors.background,
+                      borderColor:
+                        selectedRecipient === device.id
+                          ? colors.primary
+                          : colors.border,
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.recipientChipText,
-                      { color: !selectedRecipient ? "white" : colors.text },
+                      {
+                        color:
+                          selectedRecipient === device.id
+                            ? "white"
+                            : colors.text,
+                      },
                     ]}
                   >
-                    All
+                    {device.name || device.id.substring(0, 8)}
                   </Text>
                 </TouchableOpacity>
-                {connectedDevices.map((device) => (
-                  <View key={device.id}>
-                    <Text>
-                      {(device.name || device.id).substring(0, 12)}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-            <View style={styles.inputRow}>
-              <TextInput
-                style={[
-                  styles.messageInput,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="Type a message..."
-                placeholderTextColor={colors.grey}
-                value={messageText}
-                onChangeText={setMessageText}
-                multiline
-                maxLength={500}
+              ))}
+            </ScrollView>
+          )}
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[
+                styles.textInput,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="Type a message..."
+              placeholderTextColor={colors.grey + "80"}
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              maxLength={500}
+              editable={isConnected}
+            />
+            <TouchableOpacity
+              onPress={handleSendMessage}
+              disabled={!isConnected || !messageText.trim()}
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor:
+                    isConnected && messageText.trim()
+                      ? colors.primary
+                      : colors.grey + "60",
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="send"
+                size={22}
+                color="white"
               />
-              <TouchableOpacity
-                onPress={handleSendMessage}
-                disabled={!isConnected || !messageText.trim()}
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor:
-                      isConnected && messageText.trim()
-                        ? colors.primary
-                        : colors.grey,
-                  },
-                ]}
-              >
-                <MaterialCommunityIcons name="send" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </View>
-    </ScrollView>
+          {messageText.length > 0 && (
+            <Text style={[styles.charCount, { color: colors.grey }]}>
+              {messageText.length}/500
+            </Text>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -360,209 +849,317 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   contentContainer: {
-    flexGrow: 1,
+    paddingBottom: 20,
   },
   content: {
-    padding: 20,
-    paddingTop: 40,
+    padding: 16,
+    paddingTop: 20,
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 24,
+  },
+  headerContent: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   title: {
-    fontSize: 36,
-    fontWeight: "bold",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    marginTop: 8,
+    fontSize: 14,
+    marginTop: 4,
+    opacity: 0.7,
   },
-  statusContainer: {
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 20,
+  statusCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   statusHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  statusIconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginLeft: 8,
-  },
-  statusTextContainer: {
-    flex: 1,
-  },
-  statusText: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  statusSubtext: {
-    fontSize: 14,
-  },
-  deviceStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  deviceIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  statusIndicator: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    position: "relative",
   },
-  deviceTextContainer: {
+  statusPulse: {
+    position: "absolute",
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    top: 8,
+    right: 8,
+  },
+  statusInfo: {
     flex: 1,
   },
-  deviceCount: {
-    fontSize: 24,
-    fontWeight: "bold",
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 4,
   },
-  deviceText: {
-    fontSize: 14,
+  statusSubtitle: {
+    fontSize: 13,
   },
-  deviceList: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
+  scanSection: {
+    gap: 8,
   },
-  deviceListTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  deviceItem: {
+  scanButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
   },
-  deviceItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  scanButtonText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#FF000010",
+  },
+  errorText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  summaryCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  summaryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: "center",
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  deviceChips: {
+    marginTop: 4,
+  },
+  deviceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  deviceChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  devicesCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
+  deviceList: {
+    gap: 0,
+  },
+  deviceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  deviceIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  deviceItemContent: {
+  deviceInfo: {
     flex: 1,
   },
-  deviceItemText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 2,
+  deviceName: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
   },
-  deviceItemId: {
-    fontSize: 12,
-  },
-  alertContainer: {
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 20,
-  },
-  messageContainer: {
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 20,
-    maxHeight: 400,
-  },
-  messageHeader: {
+  deviceMeta: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    gap: 8,
+    flexWrap: "wrap",
   },
-  messageTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  rssiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
+    gap: 4,
   },
-  clearButtonText: {
-    fontSize: 12,
+  rssiDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  rssiText: {
+    fontSize: 11,
     fontWeight: "600",
   },
-  messageList: {
-    maxHeight: 300,
+  deviceStatus: {
+    fontSize: 12,
   },
-  messageListContent: {
+  alertCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  messagesCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    maxHeight: 400,
+    overflow: "hidden",
+  },
+  messageScroll: {
+    maxHeight: 320,
+    flexGrow: 0,
+  },
+  messageContent: {
     paddingBottom: 8,
+    flexGrow: 0,
   },
-  emptyMessageContainer: {
+  emptyMessageState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: 48,
+    gap: 12,
   },
   emptyMessageText: {
-    marginTop: 12,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "600",
     textAlign: "center",
   },
+  emptyMessageSubtext: {
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 20,
+  },
   messageBubble: {
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 10,
     borderWidth: 1,
     maxWidth: "85%",
   },
   ownMessage: {
     alignSelf: "flex-end",
+    borderBottomRightRadius: 4,
   },
   receivedMessage: {
     alignSelf: "flex-start",
+    borderBottomLeftRadius: 4,
   },
-  messageHeaderBubble: {
+  messageHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  messageSenderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   messageSender: {
     fontSize: 12,
@@ -570,65 +1167,66 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 10,
-    marginLeft: 8,
   },
-  messageContent: {
-    fontSize: 14,
+  messageText: {
+    fontSize: 15,
     lineHeight: 20,
   },
-  messageTypeBadge: {
-    marginTop: 8,
+  messageTypeTag: {
     alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
   },
-  messageTypeText: {
+  messageTypeLabel: {
     fontSize: 10,
-    fontWeight: "600",
-    textTransform: "uppercase",
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  inputContainer: {
+  inputWrapper: {
     padding: 16,
     borderTopWidth: 1,
-    borderRadius: 20,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 8,
   },
-  recipientSelector: {
+  recipientScroll: {
     marginBottom: 12,
-    maxHeight: 40,
+  },
+  recipientContainer: {
+    paddingRight: 16,
   },
   recipientChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     marginRight: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
-  selectedRecipientChip: {
+  recipientChipActive: {
     borderWidth: 2,
   },
   recipientChipText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
+    gap: 10,
   },
-  messageInput: {
+  textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderRadius: 24,
+    paddingHorizontal: 18,
     paddingVertical: 12,
     maxHeight: 100,
-    fontSize: 14,
-    marginRight: 8,
+    fontSize: 15,
+    minHeight: 48,
   },
   sendButton: {
     width: 48,
@@ -636,5 +1234,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
+  },
+  charCount: {
+    fontSize: 11,
+    textAlign: "right",
+    marginTop: 4,
+    marginRight: 4,
   },
 });

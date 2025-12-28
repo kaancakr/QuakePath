@@ -1,23 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
-import { useMeshNetwork } from "../hooks/useMeshNetwork";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { Platform } from "react-native";
 import { createEmergencyAlert } from "@/utils/firebaseEmergency";
+import { MeshMessage } from "@/hooks/useMeshNetwork";
 
 interface EmergencyAlertProps {
   onAlertSent?: () => void;
+  // Optionally inject mesh controls so we don't create another mesh instance.
+  mesh?: {
+    isConnected: boolean;
+    connectedDevices: Array<{ id: string; name?: string | null }>;
+    sendEmergencyAlert: (data: any) => Promise<void>;
+    onEmergencyAlert: (handler: (a: { sender: string; data: any }) => void) => () => void;
+    deviceId: string;
+  };
 }
 
-export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onAlertSent }) => {
-  const {
-    isConnected,
-    connectedDevices,
-    sendEmergencyAlert,
-    onEmergencyAlert,
-    deviceId,
-  } = useMeshNetwork();
+export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({
+  onAlertSent,
+  mesh,
+}) => {
+  // When mesh is not passed, we deliberately fall back to a NOOP state.
+  const isConnected = mesh?.isConnected ?? false;
+  const connectedDevices = mesh?.connectedDevices ?? [];
+  const sendEmergencyAlert = mesh?.sendEmergencyAlert;
+  const onEmergencyAlert = mesh?.onEmergencyAlert;
+  const deviceId = mesh?.deviceId ?? "unknown";
   const [isSending, setIsSending] = useState(false);
 
   // Debug logging
@@ -26,6 +36,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onAlertSent }) =
   }, [connectedDevices]);
 
   useEffect(() => {
+    if (!onEmergencyAlert) return;
     const cleanup = onEmergencyAlert((alert) => {
       // Handle incoming emergency alerts
       Alert.alert(
@@ -62,6 +73,9 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onAlertSent }) =
     if (isSending) return;
     try {
       setIsSending(true);
+      if (!sendEmergencyAlert) {
+        throw new Error("Mesh not available");
+      }
       const location = await getCurrentLocation();
       if (!location) {
         Alert.alert(

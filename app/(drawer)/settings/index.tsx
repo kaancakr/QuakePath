@@ -7,10 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
-  Image,
 } from 'react-native';
-import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
-import Colors from '@/constants/Colors';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 
 const SettingsScreen = () => {
@@ -47,187 +45,234 @@ const SettingsScreen = () => {
     isSwitch: boolean = false
   ) => (
     <TouchableOpacity 
-      style={[styles.settingItem, { borderBottomColor: colors.border }]} 
+      style={[
+        styles.settingItem, 
+        { 
+          backgroundColor: colors.background,
+          borderBottomColor: colors.border + '40',
+        }
+      ]} 
       onPress={isSwitch ? undefined : onPress}
       disabled={isSwitch}
+      activeOpacity={0.7}
     >
-      <View style={[styles.settingIconContainer, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
-        <MaterialIcons name={icon as any} size={22} color={colors.primary} />
+      <View style={[styles.settingIconContainer, { backgroundColor: colors.primary + '20' }]}>
+        <MaterialCommunityIcons name={icon as any} size={20} color={colors.primary} />
       </View>
       <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
       {isSwitch ? (
         <Switch
           value={value as boolean}
           onValueChange={onPress}
-          trackColor={{ false: colors.grey, true: colors.primary }}
-          thumbColor={colors.light}
+          trackColor={{ false: colors.grey + '60', true: colors.primary + '60' }}
+          thumbColor={value ? colors.primary : colors.grey}
         />
       ) : (
         <View style={styles.settingValueContainer}>
-          <Text style={[styles.settingValue, { color: colors.grey }]}>{value as string}</Text>
-          <MaterialIcons name="chevron-right" size={20} color={colors.grey} />
+          {value && <Text style={[styles.settingValue, { color: colors.grey }]}>{value as string}</Text>}
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.grey} />
         </View>
       )}
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Ayarlar</Text>
-        <MaterialIcons name="settings" size={24} color={colors.primary} />
-      </View>
-
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hesap</Text>
-        
-        {!isLoggedIn ? (
-          <View style={styles.loginContainer}>
-            <View style={[styles.loginTypeToggle, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
-              <TouchableOpacity 
-                style={[
-                  styles.toggleButton, 
-                  !isRescueTeam && styles.activeToggleButton
-                ]} 
-                onPress={() => setIsRescueTeam(false)}
-              >
-                <Text style={[
-                  styles.toggleText, 
-                  !isRescueTeam && styles.activeToggleText
-                ]}>Kullanıcı</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[
-                  styles.toggleButton, 
-                  isRescueTeam && styles.activeToggleButton
-                ]} 
-                onPress={() => setIsRescueTeam(true)}
-              >
-                <Text style={[
-                  styles.toggleText, 
-                  isRescueTeam && styles.activeToggleText
-                ]}>Kurtarma Ekibi</Text>
-              </TouchableOpacity>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={[styles.headerIcon, { backgroundColor: colors.primary + '20' }]}>
+              <MaterialCommunityIcons name="cog" size={32} color={colors.primary} />
             </View>
-
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: isDarkMode ? '#333' : '#f9f9f9',
-                borderColor: isDarkMode ? '#444' : '#e0e0e0',
-                color: colors.text
-              }]}
-              placeholder="E-posta"
-              placeholderTextColor={colors.grey}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: isDarkMode ? '#333' : '#f9f9f9',
-                borderColor: isDarkMode ? '#444' : '#e0e0e0',
-                color: colors.text
-              }]}
-              placeholder="Şifre"
-              placeholderTextColor={colors.grey}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>
-                {isRescueTeam ? 'Kurtarma Ekibi Olarak Giriş Yap' : 'Giriş Yap'}
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.title, { color: colors.text }]}>Ayarlar</Text>
+              <Text style={[styles.subtitle, { color: colors.grey }]}>
+                Uygulama tercihleri ve hesap ayarları
               </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.loggedInContainer}>
-            <View style={styles.profileHeader}>
-              <View style={[styles.profileIconContainer, { backgroundColor: isDarkMode ? '#333' : '#f0f0f0' }]}>
-                <MaterialIcons 
-                  name={isRescueTeam ? "medical-services" : "account-circle"} 
-                  size={48} 
-                  color={colors.primary} 
-                />
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={[styles.loggedInText, { color: colors.text }]}>{email}</Text>
-                <Text style={[styles.userTypeText, { color: colors.grey }]}>
-                  {isRescueTeam ? 'Kurtarma Ekibi Üyesi' : 'Normal Kullanıcı'}
-                </Text>
-              </View>
             </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <MaterialIcons name="logout" size={20} color={colors.light} />
-              <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
-            </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tercihler</Text>
-        
-        {renderSettingItem(
-          'dark-mode', 
-          'Karanlık Mod', 
-          isDarkMode, 
-          toggleTheme, 
-          true
-        )}
-        
-        {renderSettingItem(
-          'notifications', 
-          'Bildirimler', 
-          notifications, 
-          () => setNotifications(!notifications), 
-          true
-        )}
-        
-        {renderSettingItem(
-          'location-on', 
-          'Konum Servisleri', 
-          locationServices, 
-          () => setLocationServices(!locationServices), 
-          true
-        )}
-        
-        {renderSettingItem(
-          'language', 
-          'Dil', 
-          language, 
-          () => {}, 
-          false
-        )}
-      </View>
+        {/* Account Section */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="account" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Hesap</Text>
+          </View>
+          
+          {!isLoggedIn ? (
+            <View style={styles.loginContainer}>
+              <View style={[styles.loginTypeToggle, { backgroundColor: colors.background }]}>
+                <TouchableOpacity 
+                  style={[
+                    styles.toggleButton, 
+                    !isRescueTeam && [styles.activeToggleButton, { backgroundColor: colors.primary }]
+                  ]} 
+                  onPress={() => setIsRescueTeam(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.toggleText, 
+                    !isRescueTeam && styles.activeToggleText,
+                    { color: !isRescueTeam ? 'white' : colors.text }
+                  ]}>Kullanıcı</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.toggleButton, 
+                    isRescueTeam && [styles.activeToggleButton, { backgroundColor: colors.primary }]
+                  ]} 
+                  onPress={() => setIsRescueTeam(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.toggleText, 
+                    isRescueTeam && styles.activeToggleText,
+                    { color: isRescueTeam ? 'white' : colors.text }
+                  ]}>Kurtarma Ekibi</Text>
+                </TouchableOpacity>
+              </View>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hakkında</Text>
-        
-        {renderSettingItem(
-          'info', 
-          'Uygulama Versiyonu', 
-          '1.0.0', 
-          () => {}, 
-          false
-        )}
-        
-        {renderSettingItem(
-          'privacy-tip', 
-          'Gizlilik Politikası', 
-          '', 
-          () => {}, 
-          false
-        )}
-        
-        {renderSettingItem(
-          'description', 
-          'Kullanım Koşulları', 
-          '', 
-          () => {}, 
-          false
-        )}
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  color: colors.text
+                }]}
+                placeholder="E-posta"
+                placeholderTextColor={colors.grey + '80'}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={[styles.input, { 
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  color: colors.text
+                }]}
+                placeholder="Şifre"
+                placeholderTextColor={colors.grey + '80'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+              <TouchableOpacity 
+                style={[styles.loginButton, { backgroundColor: colors.primary }]} 
+                onPress={handleLogin}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>
+                  {isRescueTeam ? 'Kurtarma Ekibi Olarak Giriş Yap' : 'Giriş Yap'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.loggedInContainer}>
+              <View style={styles.profileHeader}>
+                <View style={[styles.profileIconContainer, { backgroundColor: colors.primary + '20' }]}>
+                  <MaterialCommunityIcons 
+                    name={isRescueTeam ? "medical-bag" : "account-circle"} 
+                    size={40} 
+                    color={colors.primary} 
+                  />
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={[styles.loggedInText, { color: colors.text }]}>{email}</Text>
+                  <Text style={[styles.userTypeText, { color: colors.grey }]}>
+                    {isRescueTeam ? 'Kurtarma Ekibi Üyesi' : 'Normal Kullanıcı'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={[styles.logoutButton, { backgroundColor: colors.error }]} 
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="logout" size={20} color="white" />
+                <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Preferences Section */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="tune" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Tercihler</Text>
+          </View>
+          
+          {renderSettingItem(
+            'theme-light-dark', 
+            'Karanlık Mod', 
+            isDarkMode, 
+            toggleTheme, 
+            true
+          )}
+          
+          {renderSettingItem(
+            'bell', 
+            'Bildirimler', 
+            notifications, 
+            () => setNotifications(!notifications), 
+            true
+          )}
+          
+          {renderSettingItem(
+            'map-marker', 
+            'Konum Servisleri', 
+            locationServices, 
+            () => setLocationServices(!locationServices), 
+            true
+          )}
+          
+          {renderSettingItem(
+            'translate', 
+            'Dil', 
+            language, 
+            () => {}, 
+            false
+          )}
+        </View>
+
+        {/* About Section */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="information" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Hakkında</Text>
+          </View>
+          
+          {renderSettingItem(
+            'information-outline', 
+            'Uygulama Versiyonu', 
+            '1.0.0', 
+            () => {}, 
+            false
+          )}
+          
+          {renderSettingItem(
+            'shield-lock', 
+            'Gizlilik Politikası', 
+            '', 
+            () => {}, 
+            false
+          )}
+          
+          {renderSettingItem(
+            'file-document', 
+            'Kullanım Koşulları', 
+            '', 
+            () => {}, 
+            false
+          )}
+        </View>
       </View>
     </ScrollView>
   );
@@ -236,74 +281,105 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  content: {
     padding: 16,
+    paddingTop: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  section: {
-    marginBottom: 24,
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  sectionCard: {
+    marginBottom: 16,
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16,
   },
   loginContainer: {
-    gap: 16,
+    gap: 12,
   },
   loginTypeToggle: {
     flexDirection: 'row',
     borderRadius: 12,
     padding: 4,
-    marginBottom: 8,
+    gap: 4,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     borderRadius: 8,
   },
   activeToggleButton: {
-    backgroundColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   toggleText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: Colors.grey,
+    fontWeight: '600',
   },
   activeToggleText: {
-    color: Colors.light,
+    fontWeight: '700',
   },
   input: {
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    fontSize: 16,
+    borderWidth: 1.5,
+    fontSize: 15,
   },
   loginButton: {
-    backgroundColor: Colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   loginButtonText: {
-    color: Colors.light,
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -314,6 +390,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#00000010',
   },
   profileIconContainer: {
     width: 64,
@@ -328,13 +407,12 @@ const styles = StyleSheet.create({
   loggedInText: {
     fontSize: 18,
     fontWeight: '600',
+    marginBottom: 4,
   },
   userTypeText: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 13,
   },
   logoutButton: {
-    backgroundColor: Colors.red,
     borderRadius: 12,
     padding: 16,
     width: '100%',
@@ -344,35 +422,36 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoutButtonText: {
-    color: Colors.light,
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   settingIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   settingTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
   },
   settingValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   settingValue: {
     fontSize: 14,
-    marginRight: 4,
   },
 });
 

@@ -6,38 +6,35 @@ import {
   ScrollView,
   Linking,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from '@/context/ThemeContext';
-
-const { width } = Dimensions.get("window");
 
 const HelpScreen = () => {
   const { colors } = useTheme();
 
   const emergencyNumbers = [
-    { name: "AFAD", number: "122", icon: "warning", color: "#FF5252" },
+    { name: "AFAD", number: "122", icon: "alert-octagon", color: "#FF5252" },
     {
       name: "Polis İmdat",
       number: "155",
-      icon: "local-police",
+      icon: "police-badge",
       color: "#2196F3",
     },
     {
       name: "Ambulans",
       number: "112",
-      icon: "medical-services",
+      icon: "medical-bag",
       color: "#4CAF50",
     },
     {
       name: "İtfaiye",
       number: "110",
-      icon: "local-fire-department",
+      icon: "fire",
       color: "#FF9800",
     },
-    { name: "Jandarma", number: "156", icon: "security", color: "#9C27B0" },
-    { name: "Alo Deprem", number: "186", icon: "vibration", color: "#795548" },
+    { name: "Jandarma", number: "156", icon: "shield-check", color: "#9C27B0" },
+    { name: "Alo Deprem", number: "186", icon: "vibrate", color: "#795548" },
   ];
 
   const kitCategories = [
@@ -46,17 +43,17 @@ const HelpScreen = () => {
       color: "#2196F3",
       items: [
         {
-          icon: "local-drink",
+          icon: "cup-water",
           text: "Su (Her kişi için 4 litre)",
           detail: "En az 3 günlük su ihtiyacı",
         },
         {
-          icon: "restaurant",
+          icon: "food",
           text: "Konserve Yiyecekler",
           detail: "Açılması kolay, uzun ömürlü gıdalar",
         },
         {
-          icon: "energy-savings-leaf",
+          icon: "food-variant",
           text: "Enerji Barları",
           detail: "Yüksek kalorili, taşınabilir gıdalar",
         },
@@ -67,17 +64,17 @@ const HelpScreen = () => {
       color: "#4CAF50",
       items: [
         {
-          icon: "medical-services",
+          icon: "medical-bag",
           text: "İlk Yardım Çantası",
           detail: "Temel medikal malzemeler",
         },
         {
-          icon: "medication",
+          icon: "pill",
           text: "İlaçlar",
           detail: "Düzenli kullanılan ilaçlar ve ağrı kesiciler",
         },
         {
-          icon: "sanitizer",
+          icon: "hand-wash",
           text: "Dezenfektan",
           detail: "El ve yara temizliği için",
         },
@@ -88,16 +85,16 @@ const HelpScreen = () => {
       color: "#FF9800",
       items: [
         {
-          icon: "flashlight-on",
+          icon: "flashlight",
           text: "El Feneri",
           detail: "Ekstra piller ile birlikte",
         },
         {
-          icon: "battery-charging-full",
+          icon: "battery",
           text: "Yedek Piller",
           detail: "Farklı boyutlarda",
         },
-        { icon: "volume-up", text: "Düdük", detail: "Yardım çağırmak için" },
+        { icon: "whistle", text: "Düdük", detail: "Yardım çağırmak için" },
         { icon: "radio", text: "Radyo", detail: "Pilli veya kablosuz" },
       ],
     },
@@ -106,17 +103,17 @@ const HelpScreen = () => {
       color: "#9C27B0",
       items: [
         {
-          icon: "hotel",
+          icon: "blanket",
           text: "Battaniye",
           detail: "Termal battaniye tercih edilir",
         },
         {
-          icon: "checkroom",
+          icon: "tshirt-crew",
           text: "Yedek Kıyafetler",
           detail: "Hava koşullarına uygun",
         },
         {
-          icon: "home",
+          icon: "tent",
           text: "Çadır",
           detail: "Acil durum barınması için",
         },
@@ -127,17 +124,17 @@ const HelpScreen = () => {
       color: "#795548",
       items: [
         {
-          icon: "description",
+          icon: "card-account-details",
           text: "Kimlik Belgeleri",
           detail: "Kimlik, pasaport fotokopileri",
         },
         {
-          icon: "home",
+          icon: "file-document",
           text: "Tapu ve Sigorta",
           detail: "Önemli evrak fotokopileri",
         },
         {
-          icon: "account-balance",
+          icon: "bank",
           text: "Banka Bilgileri",
           detail: "Kart ve hesap bilgileri",
         },
@@ -153,114 +150,152 @@ const HelpScreen = () => {
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <MaterialIcons name="help" size={32} color={colors.primary} />
-        <Text style={[styles.title, { color: colors.text }]}>Yardım</Text>
-      </View>
-
-      {/* Emergency Numbers */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Acil Numaralar</Text>
-        <View style={styles.emergencyGrid}>
-          {emergencyNumbers.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.emergencyButton,
-                { 
-                  borderColor: item.color + "40",
-                  backgroundColor: colors.card,
-                },
-              ]}
-              onPress={() => Linking.openURL(`tel:${item.number}`)}
-            >
-              <MaterialIcons
-                name={item.icon as any}
-                size={32}
-                color={item.color}
-              />
-              <Text style={[styles.emergencyName, { color: colors.text }]}>{item.name}</Text>
-              <Text style={[styles.emergencyNumber, { color: item.color }]}>
-                {item.number}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Emergency Kit */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Deprem Çantası</Text>
-        <Text style={[styles.sectionSubtitle, { color: colors.grey }]}>
-          Acil durumda ihtiyaç duyabileceğiniz temel malzemeler
-        </Text>
-        {kitCategories.map((category, index) => (
-          <View key={index} style={styles.categoryContainer}>
-            <View style={styles.categoryHeader}>
-              <MaterialIcons name="category" size={24} color={category.color} />
-              <Text style={[styles.categoryTitle, { color: category.color }]}>
-                {category.title}
-              </Text>
+      <View style={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={[styles.headerIcon, { backgroundColor: colors.primary + '20' }]}>
+              <MaterialCommunityIcons name="help-circle" size={32} color={colors.primary} />
             </View>
-            <View style={styles.itemsContainer}>
-              {category.items.map((item, itemIndex) => (
-                <View
-                  key={itemIndex}
-                  style={[
-                    styles.kitItem,
-                    { 
-                      borderColor: category.color + "40",
-                      backgroundColor: colors.card,
-                    },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={item.icon as any}
-                    size={28}
-                    color={category.color}
-                  />
-                  <View style={styles.itemTextContainer}>
-                    <Text style={[styles.itemTitle, { color: colors.text }]}>{item.text}</Text>
-                    <Text style={[styles.itemDetail, { color: colors.grey }]}>{item.detail}</Text>
-                  </View>
-                </View>
-              ))}
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.title, { color: colors.text }]}>Yardım</Text>
+              <Text style={[styles.subtitle, { color: colors.grey }]}>
+                Acil durum bilgileri ve kaynaklar
+              </Text>
             </View>
           </View>
-        ))}
-      </View>
+        </View>
 
-      {/* Links */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Faydalı Linkler</Text>
-        <TouchableOpacity
-          style={[
-            styles.linkButton, 
-            { 
-              borderColor: colors.primary + "40",
-              backgroundColor: colors.card,
-            }
-          ]}
-          onPress={() => openURL("https://www.afad.gov.tr")}
-        >
-          <MaterialIcons name="language" size={24} color={colors.primary} />
-          <Text style={[styles.linkText, { color: colors.primary }]}>AFAD Web Sitesi</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.linkButton, 
-            { 
-              borderColor: colors.primary + "40",
-              backgroundColor: colors.card,
-            }
-          ]}
-          onPress={() => openURL("https://deprem.afad.gov.tr")}
-        >
-          <MaterialIcons name="map" size={24} color={colors.primary} />
-          <Text style={[styles.linkText, { color: colors.primary }]}>Deprem Haritaları</Text>
-        </TouchableOpacity>
+        {/* Emergency Numbers Card */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="phone" size={20} color={colors.error} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Acil Numaralar</Text>
+          </View>
+          <View style={styles.emergencyGrid}>
+            {emergencyNumbers.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.emergencyButton,
+                  { 
+                    borderColor: item.color + "30",
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                onPress={() => Linking.openURL(`tel:${item.number}`)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.emergencyIconContainer, { backgroundColor: item.color + "20" }]}>
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={28}
+                    color={item.color}
+                  />
+                </View>
+                <Text style={[styles.emergencyName, { color: colors.text }]}>{item.name}</Text>
+                <Text style={[styles.emergencyNumber, { color: item.color }]}>
+                  {item.number}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Emergency Kit Card */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="bag-personal" size={20} color={colors.primary} />
+            <View style={styles.cardHeaderText}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Deprem Çantası</Text>
+              <Text style={[styles.sectionSubtitle, { color: colors.grey }]}>
+                Acil durumda ihtiyaç duyabileceğiniz temel malzemeler
+              </Text>
+            </View>
+          </View>
+          {kitCategories.map((category, index) => (
+            <View key={index} style={styles.categoryContainer}>
+              <View style={styles.categoryHeader}>
+                <View style={[styles.categoryIconContainer, { backgroundColor: category.color + "20" }]}>
+                  <MaterialCommunityIcons name="folder" size={18} color={category.color} />
+                </View>
+                <Text style={[styles.categoryTitle, { color: category.color }]}>
+                  {category.title}
+                </Text>
+              </View>
+              <View style={styles.itemsContainer}>
+                {category.items.map((item, itemIndex) => (
+                  <View
+                    key={itemIndex}
+                    style={[
+                      styles.kitItem,
+                      { 
+                        borderLeftColor: category.color,
+                        backgroundColor: colors.background,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.kitIconContainer, { backgroundColor: category.color + "20" }]}>
+                      <MaterialCommunityIcons
+                        name={item.icon as any}
+                        size={22}
+                        color={category.color}
+                      />
+                    </View>
+                    <View style={styles.itemTextContainer}>
+                      <Text style={[styles.itemTitle, { color: colors.text }]}>{item.text}</Text>
+                      <Text style={[styles.itemDetail, { color: colors.grey }]}>{item.detail}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Links Card */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="link" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Faydalı Linkler</Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.linkButton, 
+              { 
+                borderColor: colors.primary + "30",
+                backgroundColor: colors.background,
+              }
+            ]}
+            onPress={() => openURL("https://www.afad.gov.tr")}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.linkIconContainer, { backgroundColor: colors.primary + "20" }]}>
+              <MaterialCommunityIcons name="web" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.linkText, { color: colors.text }]}>AFAD Web Sitesi</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.grey} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.linkButton, 
+              { 
+                borderColor: colors.primary + "30",
+                backgroundColor: colors.background,
+              }
+            ]}
+            onPress={() => openURL("https://deprem.afad.gov.tr")}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.linkIconContainer, { backgroundColor: colors.primary + "20" }]}>
+              <MaterialCommunityIcons name="map" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.linkText, { color: colors.text }]}>Deprem Haritaları</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.grey} />
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -271,57 +306,97 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
+    paddingBottom: 20,
+  },
+  content: {
     padding: 16,
+    paddingTop: 20,
   },
   header: {
+    marginBottom: 24,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-    paddingHorizontal: 8,
+    gap: 12,
+  },
+  headerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
-    marginLeft: 12,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  section: {
-    marginBottom: 32,
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  sectionCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardHeaderText: {
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
-    marginBottom: 8,
-    paddingHorizontal: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-    paddingHorizontal: 8,
+    fontSize: 13,
+    marginTop: 4,
   },
   emergencyGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
+    gap: 12,
   },
   emergencyButton: {
     width: "48%",
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 1.5,
+  },
+  emergencyIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
   },
   emergencyName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginTop: 8,
     textAlign: "center",
+    marginBottom: 4,
   },
   emergencyNumber: {
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "700",
   },
   categoryContainer: {
     marginBottom: 20,
@@ -330,12 +405,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
-    paddingHorizontal: 8,
+    gap: 8,
+  },
+  categoryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
-    marginLeft: 8,
   },
   itemsContainer: {
     gap: 8,
@@ -344,20 +425,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
+    padding: 14,
+    borderLeftWidth: 3,
+    marginLeft: 4,
+  },
+  kitIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   itemTextContainer: {
     flex: 1,
-    marginLeft: 12,
   },
   itemTitle: {
     fontSize: 15,
     fontWeight: "500",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   itemDetail: {
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
   },
   linkButton: {
     flexDirection: "row",
@@ -365,11 +455,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    gap: 12,
+  },
+  linkIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   linkText: {
-    fontSize: 16,
-    marginLeft: 12,
+    fontSize: 15,
+    fontWeight: "500",
+    flex: 1,
   },
 });
 
