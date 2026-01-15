@@ -33,6 +33,7 @@ import Mapbox, {
 } from "@rnmapbox/maps";
 import { Feature, LineString } from "geojson";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import EmergencyActions from "@/components/EmergencyActions";
 import SavedLocationList from "@/components/SavedLocationList";
 import NavigationModal from "@/components/NavigationModal";
@@ -45,6 +46,7 @@ import {
   subscribeEmergencies,
   subscribeEmergencyMessages,
 } from "@/utils/firebaseEmergency";
+import { getCivilianLocations, LocationResponse } from "@/api";
 
 const access_token =
   "REMOVED_MAPBOX_PUBLIC_TOKEN";
@@ -53,6 +55,7 @@ Mapbox.setAccessToken(access_token);
 const DashboardScreen = () => {
   const viewModel = useDashboardViewModel();
   const { colors, isDarkMode, toggleTheme } = useTheme();
+  const { isRescueTeam } = useAuth();
   const translateY = useSharedValue(0);
   const MAX_TRANSLATE_Y = -400;
   const CLOSED_TRANSLATE_Y = 0;
@@ -78,6 +81,8 @@ const DashboardScreen = () => {
   const [isSendingEmergency, setIsSendingEmergency] = useState(false);
   const [isSendingEmergencyMessage, setIsSendingEmergencyMessage] =
     useState(false);
+  const [civilianLocations, setCivilianLocations] = useState<LocationResponse[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const deviceIdRef = useRef(
     `${Platform.OS}-${Math.random().toString(36).slice(2, 10)}`
   );
@@ -120,6 +125,31 @@ const DashboardScreen = () => {
     );
     return unsubscribe;
   }, [selectedEmergency?.id]);
+
+  // Fetch civilian locations for rescue teams
+  useEffect(() => {
+    if (!isRescueTeam) return;
+
+    const fetchLocations = async () => {
+      setIsLoadingLocations(true);
+      try {
+        const result = await getCivilianLocations(true, 1000); // Get latest location per user
+        if (result.success && result.data) {
+          setCivilianLocations(result.data);
+          console.log('[Dashboard] Loaded civilian locations:', result.data.length);
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error fetching civilian locations:', error);
+      } finally {
+        setIsLoadingLocations(false);
+      }
+    };
+
+    fetchLocations();
+    // Refresh every 5 minutes for rescue teams
+    const interval = setInterval(fetchLocations, 300000);
+    return () => clearInterval(interval);
+  }, [isRescueTeam]);
 
   const fetchRoute = async (destination: {
     latitude: number;
@@ -416,7 +446,53 @@ const DashboardScreen = () => {
             </View>
           </PointAnnotation>
         ))}
+
+        {/* Show civilian locations for rescue teams */}
+        {isRescueTeam && civilianLocations.map((location) => (
+          <PointAnnotation
+            key={`civilian-${location.id}`}
+            id={`civilian-${location.id}`}
+            coordinate={[parseFloat(location.longitude.toString()), parseFloat(location.latitude.toString())]}
+            onSelected={() => {
+              setSelectedLocation({
+                latitude: parseFloat(location.latitude.toString()),
+                longitude: parseFloat(location.longitude.toString()),
+              });
+              setShowPopup(true);
+            }}
+          >
+            <View
+              style={[
+                styles.civilianMarker,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <MaterialIcons name="person-pin" size={18} color="white" />
+            </View>
+          </PointAnnotation>
+        ))}
       </MapView>
+
+      {/* Show civilian location count for rescue teams */}
+      {isRescueTeam && (
+        <View
+          style={[
+            styles.infoBadge,
+            {
+              backgroundColor: colors.primary,
+              position: "absolute",
+              top: 60,
+              right: 16,
+              zIndex: 2,
+            },
+          ]}
+        >
+          <MaterialIcons name="people" size={18} color="white" />
+          <Text style={[styles.infoBadgeText, { color: "#fff" }]}>
+            {isLoadingLocations ? "Loading..." : `${civilianLocations.length} Civilians`}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.emergencyFabContainer}>
         <TouchableOpacity
@@ -707,6 +783,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.25,
     shadowRadius: 2,
+  },
+  civilianMarker: {
+    padding: 6,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  infoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  infoBadgeText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   bottomSheet: {
     position: "absolute",

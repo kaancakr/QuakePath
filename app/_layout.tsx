@@ -7,6 +7,8 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useTheme } from "@/context/ThemeContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { LocationSyncProvider } from "@/components/LocationSyncProvider";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -69,7 +71,11 @@ async function registerForPushNotificationsAsync() {
 export default function Layout() {
   return (
     <ThemeProvider>
-      <MainLayout />
+      <AuthProvider>
+        <LocationSyncProvider syncInterval={1800000} enabled={true}>
+          <MainLayout />
+        </LocationSyncProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

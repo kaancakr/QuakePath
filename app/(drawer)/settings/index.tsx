@@ -10,31 +10,24 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
 
 const SettingsScreen = () => {
   const { isDarkMode, toggleTheme, colors } = useTheme();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isRescueTeam, setIsRescueTeam] = useState(false);
+  const { user, userProfile, logout, isRescueTeam } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [language, setLanguage] = useState('Türkçe');
 
-  const handleLogin = () => {
-    // TODO: Implement actual login logic
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setEmail('');
-    setPassword('');
-    setIsRescueTeam(false);
-  };
-
-  const toggleRescueTeam = () => {
-    setIsRescueTeam(!isRescueTeam);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const renderSettingItem = (
@@ -105,90 +98,23 @@ const SettingsScreen = () => {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Hesap</Text>
           </View>
           
-          {!isLoggedIn ? (
-            <View style={styles.loginContainer}>
-              <View style={[styles.loginTypeToggle, { backgroundColor: colors.background }]}>
-                <TouchableOpacity 
-                  style={[
-                    styles.toggleButton, 
-                    !isRescueTeam && [styles.activeToggleButton, { backgroundColor: colors.primary }]
-                  ]} 
-                  onPress={() => setIsRescueTeam(false)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.toggleText, 
-                    !isRescueTeam && styles.activeToggleText,
-                    { color: !isRescueTeam ? 'white' : colors.text }
-                  ]}>Kullanıcı</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.toggleButton, 
-                    isRescueTeam && [styles.activeToggleButton, { backgroundColor: colors.primary }]
-                  ]} 
-                  onPress={() => setIsRescueTeam(true)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.toggleText, 
-                    isRescueTeam && styles.activeToggleText,
-                    { color: isRescueTeam ? 'white' : colors.text }
-                  ]}>Kurtarma Ekibi</Text>
-                </TouchableOpacity>
-              </View>
-
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                  color: colors.text
-                }]}
-                placeholder="E-posta"
-                placeholderTextColor={colors.grey + '80'}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                  color: colors.text
-                }]}
-                placeholder="Şifre"
-                placeholderTextColor={colors.grey + '80'}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-              <TouchableOpacity 
-                style={[styles.loginButton, { backgroundColor: colors.primary }]} 
-                onPress={handleLogin}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.loginButtonText}>
-                  {isRescueTeam ? 'Kurtarma Ekibi Olarak Giriş Yap' : 'Giriş Yap'}
+          {user ? (
+            <View style={styles.userInfoContainer}>
+              <View style={styles.userInfoRow}>
+                <MaterialCommunityIcons name="email" size={20} color={colors.grey} />
+                <Text style={[styles.userInfoText, { color: colors.text }]}>
+                  {user.email}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.loggedInContainer}>
-              <View style={styles.profileHeader}>
-                <View style={[styles.profileIconContainer, { backgroundColor: colors.primary + '20' }]}>
-                  <MaterialCommunityIcons 
-                    name={isRescueTeam ? "medical-bag" : "account-circle"} 
-                    size={40} 
-                    color={colors.primary} 
-                  />
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={[styles.loggedInText, { color: colors.text }]}>{email}</Text>
-                  <Text style={[styles.userTypeText, { color: colors.grey }]}>
-                    {isRescueTeam ? 'Kurtarma Ekibi Üyesi' : 'Normal Kullanıcı'}
-                  </Text>
-                </View>
+              </View>
+              <View style={styles.userInfoRow}>
+                <MaterialCommunityIcons 
+                  name={isRescueTeam ? "shield-account" : "account"} 
+                  size={20} 
+                  color={colors.grey} 
+                />
+                <Text style={[styles.userInfoText, { color: colors.text }]}>
+                  {isRescueTeam ? 'Rescue Team' : 'Civilian'}
+                </Text>
               </View>
               <TouchableOpacity 
                 style={[styles.logoutButton, { backgroundColor: colors.error }]} 
@@ -196,7 +122,20 @@ const SettingsScreen = () => {
                 activeOpacity={0.8}
               >
                 <MaterialCommunityIcons name="logout" size={20} color="white" />
-                <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
+                <Text style={styles.logoutButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.userInfoContainer}>
+              <Text style={[styles.sectionSubtitle, { color: colors.grey }]}>
+                Please log in to access your account
+              </Text>
+              <TouchableOpacity 
+                style={[styles.loginButton, { backgroundColor: colors.primary }]} 
+                onPress={() => router.push('/login')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>Go to Login</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -383,6 +322,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  userInfoContainer: {
+    gap: 12,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  userInfoText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   loggedInContainer: {
     gap: 16,
   },
@@ -411,20 +381,6 @@ const styles = StyleSheet.create({
   },
   userTypeText: {
     fontSize: 13,
-  },
-  logoutButton: {
-    borderRadius: 12,
-    padding: 16,
-    width: '100%',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   settingItem: {
     flexDirection: 'row',

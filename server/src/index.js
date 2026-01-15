@@ -4,6 +4,10 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 
+// Database imports
+const { initializeSchema } = require('./db/schema');
+const locationRepository = require('./db/locationRepository');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -19,6 +23,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Store connected devices
 const connectedDevices = new Map();
+
+// Initialize database schema on startup
+initializeSchema().catch((error) => {
+  console.error('[Server] Failed to initialize database schema:', error);
+  // Continue running even if schema initialization fails
+  // This allows the server to start and handle other requests
+});
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -59,12 +70,43 @@ io.on('connection', (socket) => {
   });
 
   // Handle mesh network messages
-  socket.on('meshMessage', (data, callback) => {
+  socket.on('meshMessage', async (data, callback) => {
     try {
       console.log('Mesh message received:', {
         from: socket.id,
         data: data
       });
+
+      // Handle location messages - save to database
+      if (data.type === 'location' && data.data) {
+        try {
+          const location = data.data.location || data.data;
+          if (location && typeof location.latitude === 'number' && typeof location.longitude === 'number') {
+            const locationData = {
+              deviceId: data.sender || socket.id,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              accuracy: location.accuracy || null,
+              altitude: location.altitude || null,
+              heading: location.heading || null,
+              speed: location.speed || null,
+              timestamp: data.timestamp || new Date().toISOString(),
+              metadata: {
+                platform: data.deviceInfo?.platform,
+                version: data.deviceInfo?.version,
+                messageId: data.id,
+                sender: data.sender,
+              },
+            };
+
+            await locationRepository.createLocation(locationData);
+            console.log('[Server] Location saved to database:', locationData.deviceId);
+          }
+        } catch (dbError) {
+          console.error('[Server] Error saving location to database:', dbError);
+          // Continue processing the message even if database save fails
+        }
+      }
 
       // Check if this is a new format message (has type and content)
       if (data.type && data.content) {
@@ -117,10 +159,151 @@ io.on('connection', (socket) => {
 });
 
 // API endpoints
+
+// Get connected devices
 app.get('/api/devices', (req, res) => {
   const devices = Array.from(connectedDevices.values());
   console.log('API: Getting devices list:', devices);
   res.json(devices);
+});
+
+// POST /api/locations - Save location from mesh network
+app.post('/api/locations', async (req, res) => {
+  try {
+    const {
+      deviceId,
+      userId,
+      userRole,
+      latitude,
+      longitude,
+      accuracy,
+      altitude,
+      heading,
+      speed,
+      timestamp,
+      metadata,
+    } = req.body;
+
+    // Validate required fields
+    if (!deviceId || typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'deviceId, latitude, and longitude are required',
+      });
+    }
+
+    // Validate latitude and longitude ranges
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid latitude or longitude values',
+      });
+    }
+
+    const locationData = {
+      deviceId,
+      userId: userId || null,
+      userRole: userRole || null,
+      latitude,
+      longitude,
+      accuracy: accuracy || null,
+      altitude: altitude || null,
+      heading: heading || null,
+      speed: speed || null,
+      timestamp: timestamp || new Date().toISOString(),
+      metadata: metadata || null,
+    };
+
+    const location = await locationRepository.createLocation(locationData);
+    
+    console.log('[API] Location saved:', location.id);
+    res.status(201).json(location);
+  } catch (error) {
+    console.error('[API] Error saving location:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to save location',
+    });
+  }
+});
+
+// GET /api/locations/device/:deviceId - Get locations for a specific device
+app.get('/api/locations/device/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const limit = parseInt(req.query.limit, 10) || 50;
+
+    if (limit > 1000) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Limit cannot exceed 1000',
+      });
+    }
+
+    const locations = await locationRepository.getLocationsByDevice(deviceId, limit);
+    res.json(locations);
+  } catch (error) {
+    console.error('[API] Error fetching device locations:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to fetch locations',
+    });
+  }
+});
+
+// GET /api/locations/recent - Get recent locations from all devices
+app.get('/api/locations/recent', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+
+    if (limit > 1000) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Limit cannot exceed 1000',
+      });
+    }
+
+    const locations = await locationRepository.getRecentLocations(limit);
+    res.json(locations);
+  } catch (error) {
+    console.error('[API] Error fetching recent locations:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to fetch recent locations',
+    });
+  }
+});
+
+// GET /api/locations/civilians - Get civilian locations (for rescue teams)
+app.get('/api/locations/civilians', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 1000;
+    const latestOnly = req.query.latestOnly === 'true';
+
+    if (limit > 5000) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Limit cannot exceed 5000',
+      });
+    }
+
+    let locations;
+    if (latestOnly) {
+      // Get latest location per user (for map markers)
+      locations = await locationRepository.getLatestLocationsByUser(limit);
+    } else {
+      // Get all civilian locations
+      locations = await locationRepository.getCivilianLocations(limit);
+    }
+
+    res.json(locations);
+  } catch (error) {
+    console.error('[API] Error fetching civilian locations:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to fetch civilian locations',
+    });
+  }
 });
 
 // Serve admin console

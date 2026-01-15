@@ -5,6 +5,7 @@ import * as Location from "expo-location";
 import { Platform } from "react-native";
 import { createEmergencyAlert } from "@/utils/firebaseEmergency";
 import { MeshMessage } from "@/hooks/useMeshNetwork";
+import { useLocationSync } from "@/hooks/useLocationSync";
 
 interface EmergencyAlertProps {
   onAlertSent?: () => void;
@@ -29,6 +30,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({
   const onEmergencyAlert = mesh?.onEmergencyAlert;
   const deviceId = mesh?.deviceId ?? "unknown";
   const [isSending, setIsSending] = useState(false);
+  const { syncLocation } = useLocationSync();
 
   // Debug logging
   useEffect(() => {
@@ -99,6 +101,33 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({
           version: Platform.Version,
         },
       };
+
+      // Sync location to database (via API or mesh network)
+      try {
+        console.log('[EmergencyAlert] Syncing location to API/mesh:', {
+          deviceId: deviceId || alertData.deviceInfo.platform || "unknown",
+          latitude: location.latitude,
+          longitude: location.longitude,
+        });
+        
+        await syncLocation({
+          deviceId: deviceId || alertData.deviceInfo.platform || "unknown",
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy || 0,
+          timestamp: alertData.timestamp,
+          metadata: {
+            platform: Platform.OS,
+            version: Platform.Version,
+            source: 'emergency_alert',
+          },
+        });
+        
+        console.log('[EmergencyAlert] Location sync completed');
+      } catch (syncError) {
+        console.error('[EmergencyAlert] Error syncing location:', syncError);
+        // Don't block emergency alert if location sync fails
+      }
 
       await Promise.all([
         sendEmergencyAlert(alertData),
