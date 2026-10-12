@@ -43,13 +43,13 @@ package-lock.json
 
 #### Test Dokümantasyonları
 ```
-TEST_FINAL_STATUS.md
-TEST_FIX.md
-TEST_STATUS.md
-TEST_TROUBLESHOOTING.md
-README_TESTS.md
-QUICK_TEST.md
-CLEANUP_SUMMARY.md
+docs/TEST_FINAL_STATUS.md
+docs/TEST_FIX.md
+docs/TEST_STATUS.md
+docs/TEST_TROUBLESHOOTING.md
+docs/README_TESTS.md
+docs/QUICK_TEST.md
+docs/CLEANUP_SUMMARY.md
 ```
 **Not:** Bu dosyalar yardımcı dokümantasyon, commit etmek zorunda değilsiniz
 
