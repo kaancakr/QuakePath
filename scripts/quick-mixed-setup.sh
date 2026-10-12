@@ -44,7 +44,7 @@ if [ "$USB_COUNT" -eq 0 ] && [ "$WIRELESS_COUNT" -eq 0 ]; then
     echo "   - Run: adb pair <IP>:<PAIRING_PORT>"
     echo "   - Run: adb connect <IP>:<DEBUG_PORT>"
     echo ""
-    echo "See MIXED_USB_WIRELESS_SETUP.md for detailed instructions"
+    echo "See docs/MIXED_USB_WIRELESS_SETUP.md for detailed instructions"
     exit 1
 fi
 
